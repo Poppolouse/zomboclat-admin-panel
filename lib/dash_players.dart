@@ -4,47 +4,35 @@ extension DashPlayersMixin on _DashState {
   Future<void> _fetchGamePlayers() async {
     setState(() => _isLoadingGamePlayers = true);
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        '-o',
-        'ConnectTimeout=6',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/player_manager.py list',
-      ], runInShell: true).timeout(const Duration(seconds: 8));
-
-      if (res.exitCode == 0 && mounted) {
-        final outStr = res.stdout.toString().trim();
-        final jsonMap = jsonDecode(outStr) as Map<String, dynamic>;
-        if (jsonMap['status'] == 'ok') {
-          setState(() {
-            _gamePlayers.clear();
-            if (jsonMap['players'] != null) {
-              _gamePlayers.addAll(
-                (jsonMap['players'] as List).map(
-                  (e) => GamePlayer.fromJson(e as Map<String, dynamic>),
-                ),
-              );
+      final jsonMap = await ApiClient.getPlayers();
+      if (jsonMap['status'] == 'ok' && mounted) {
+        setState(() {
+          _gamePlayers.clear();
+          if (jsonMap['players'] != null) {
+            _gamePlayers.addAll(
+              (jsonMap['players'] as List).map(
+                (e) => GamePlayer.fromJson(e as Map<String, dynamic>),
+              ),
+            );
+          }
+          _gameUserLogs.clear();
+          final logs = jsonMap['user_logs'] ?? jsonMap['userlogs'];
+          if (logs != null) {
+            _gameUserLogs.addAll(
+              (logs as List).map(
+                (e) => GameUserLog.fromJson(e as Map<String, dynamic>),
+              ),
+            );
+          }
+          if (_editingPlayer != null) {
+            final updated = _gamePlayers
+                .where((p) => p.username == _editingPlayer!.username)
+                .firstOrNull;
+            if (updated != null) {
+              _editingPlayer = updated;
             }
-            _gameUserLogs.clear();
-            final logs = jsonMap['user_logs'] ?? jsonMap['userlogs'];
-            if (logs != null) {
-              _gameUserLogs.addAll(
-                (logs as List).map(
-                  (e) => GameUserLog.fromJson(e as Map<String, dynamic>),
-                ),
-              );
-            }
-            if (_editingPlayer != null) {
-              final updated = _gamePlayers
-                  .where((p) => p.username == _editingPlayer!.username)
-                  .firstOrNull;
-              if (updated != null) {
-                _editingPlayer = updated;
-              }
-            }
-          });
-        }
+          }
+        });
       }
     } catch (_) {
     } finally {
@@ -52,7 +40,7 @@ extension DashPlayersMixin on _DashState {
     }
   }
 
-  // Oyuncu Banla / Ban KaldÄ±r
+  // Oyuncu Banla / Ban Kaldir
   Future<void> _togglePlayerBan(GamePlayer p) async {
     if (!widget.user.isAdmin) return;
     final sm = ScaffoldMessenger.of(context);
@@ -60,31 +48,18 @@ extension DashPlayersMixin on _DashState {
 
     try {
       if (isBanned) {
-        await Process.run('ssh', [
-          '-o',
-          'BatchMode=yes',
-          'pz-vps',
-          'python3 /var/lib/zomboclat/player_manager.py unban "${p.steamid ?? ""}" "${p.username}"',
-        ], runInShell: true);
-        Process.run('ssh', [
-          '-o',
-          'BatchMode=yes',
-          'pz-vps',
-          'python3 /var/lib/zomboclat/db.py log ${widget.user.username} PLAYER_UNBAN "Oyuncu ${p.username} bani kaldirildi"',
-        ], runInShell: true);
+        await ApiClient.unbanPlayer(
+          username: p.username,
+          steamid: p.steamid ?? '',
+          byUser: widget.user.username,
+        );
       } else {
-        await Process.run('ssh', [
-          '-o',
-          'BatchMode=yes',
-          'pz-vps',
-          'python3 /var/lib/zomboclat/player_manager.py ban "${p.steamid ?? ""}" "${p.username}" "Admin panel yasagi"',
-        ], runInShell: true);
-        Process.run('ssh', [
-          '-o',
-          'BatchMode=yes',
-          'pz-vps',
-          'python3 /var/lib/zomboclat/db.py log ${widget.user.username} PLAYER_BAN "Oyuncu ${p.username} banlandi"',
-        ], runInShell: true);
+        await ApiClient.banPlayer(
+          username: p.username,
+          steamid: p.steamid ?? '',
+          reason: 'Admin panel yasagi',
+          byUser: widget.user.username,
+        );
       }
       _fetchGamePlayers();
       _fetchAuditLogs();
@@ -134,18 +109,10 @@ extension DashPlayersMixin on _DashState {
     if (confirm != true || !mounted) return;
 
     try {
-      await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/player_manager.py del "$username"',
-      ], runInShell: true);
-      Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/db.py log ${widget.user.username} PLAYER_DELETE "Oyuncu $username whitelistten silindi"',
-      ], runInShell: true);
+      await ApiClient.deleteGamePlayer(
+        username: username,
+        byUser: widget.user.username,
+      );
       _fetchGamePlayers();
       _fetchAuditLogs();
       sm.showSnackBar(
@@ -164,7 +131,7 @@ extension DashPlayersMixin on _DashState {
     }
   }
 
-  // Oyuncu & Karakter StÃ¼dyosunu AÃ§ (Full-Page Studio)
+  // Oyuncu & Karakter Studyosunu Ac (Full-Page Studio)
   void _openPlayerEditor(GamePlayer p) {
     setState(() {
       _editingPlayer = p;
@@ -414,25 +381,14 @@ extension DashPlayersMixin on _DashState {
       'heal': _pHealth >= 99.0 && !_pIsInfected,
     };
 
-    final b64 = base64Encode(utf8.encode(jsonEncode(updatePayload)));
-
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/player_manager.py update_full_b64 "${p.username}" "$b64"',
-      ], runInShell: true);
-      final jsonMap =
-          jsonDecode(res.stdout.toString().trim()) as Map<String, dynamic>;
+      final jsonMap = await ApiClient.updateGamePlayer(
+        username: p.username,
+        payload: updatePayload,
+        byUser: widget.user.username,
+      );
       if (jsonMap['status'] == 'ok') {
         _pPasswordCtrl.clear();
-        Process.run('ssh', [
-          '-o',
-          'BatchMode=yes',
-          'pz-vps',
-          'python3 /var/lib/zomboclat/db.py log ${widget.user.username} PLAYER_UPDATE "Player ${p.username} (${_pCharNameCtrl.text.trim()}) updated from Studio"',
-        ], runInShell: true);
         await _fetchGamePlayers();
         await _fetchAuditLogs();
         sm.showSnackBar(
@@ -461,19 +417,15 @@ extension DashPlayersMixin on _DashState {
     }
   }
 
-  // CanlÄ± RCON Komutu Ã‡alÄ±ÅŸtÄ±r
+  // Canli RCON Komutu Calistir
   Future<void> _quickSendRcon(String cmd, String successMsg) async {
     if (!widget.user.isAdmin) return;
     final sm = ScaffoldMessenger.of(context);
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/player_manager.py rcon $cmd',
-      ], runInShell: true);
-      final jsonMap =
-          jsonDecode(res.stdout.toString().trim()) as Map<String, dynamic>;
+      final jsonMap = await ApiClient.sendRcon(
+        cmd,
+        byUser: widget.user.username,
+      );
       if (jsonMap['status'] == 'ok') {
         sm.showSnackBar(
           SnackBar(
@@ -499,7 +451,7 @@ extension DashPlayersMixin on _DashState {
     }
   }
 
-  // HÄ±zlÄ± EÅŸya Verme
+  // Hizli Esya Verme
   Future<void> _quickGiveItem(String itemId, int count) async {
     if (_editingPlayer == null || !widget.user.isAdmin) return;
     final uname = _editingPlayer!.username;
@@ -647,15 +599,12 @@ extension DashPlayersMixin on _DashState {
 
                 final sm = ScaffoldMessenger.of(context);
                 try {
-                  final res = await Process.run('ssh', [
-                    '-o',
-                    'BatchMode=yes',
-                    'pz-vps',
-                    'python3 /var/lib/zomboclat/player_manager.py add "$uname" "$pwd" $selectedRoleId',
-                  ], runInShell: true);
-                  final jsonMap = jsonDecode(
-                    res.stdout.toString().trim(),
-                  ) as Map<String, dynamic>;
+                  final jsonMap = await ApiClient.addGamePlayer(
+                    username: uname,
+                    password: pwd,
+                    roleId: selectedRoleId,
+                    byUser: widget.user.username,
+                  );
                   if (jsonMap['status'] == 'ok') {
                     _fetchGamePlayers();
                     _fetchAuditLogs();

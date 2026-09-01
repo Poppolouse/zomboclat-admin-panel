@@ -25,17 +25,11 @@ class _AppState extends State<App> {
 
   void _logout() async {
     if (_currentUser != null) {
-      final username = _currentUser!.username;
-      try {
-        Process.run('ssh', [
-          '-o',
-          'BatchMode=yes',
-          '-o',
-          'ConnectTimeout=3',
-          'pz-vps',
-          'python3 /var/lib/zomboclat/db.py log $username LOGOUT "Session Closed"',
-        ], runInShell: true);
-      } catch (_) {}
+      ApiClient.logAuditAction(
+        username: _currentUser!.username,
+        action: 'LOGOUT',
+        details: 'Session Closed',
+      );
     }
     setState(() {
       _currentUser = null;
@@ -121,44 +115,28 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        '-o',
-        'ConnectTimeout=4',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/db.py auth $username',
-      ], runInShell: true).timeout(const Duration(seconds: 5));
-
-      if (res.exitCode == 0) {
-        final raw = res.stdout.toString().trim();
-        final jsonMap = jsonDecode(raw) as Map<String, dynamic>;
-
-        if (jsonMap['status'] == 'ok' && jsonMap['user'] != null) {
-          final appUser = AppUser.fromJson(
-            jsonMap['user'] as Map<String, dynamic>,
-          );
-          widget.onLoginSuccess(appUser);
-          return;
-        } else {
-          if (mounted) {
-            setState(() {
-              _errorMessage = 'User not registered in database. Please ask the administrator (Poppolouse) to add you.';
-            });
-          }
-        }
+      final appUser = await ApiClient.login(username);
+      if (appUser != null) {
+        widget.onLoginSuccess(appUser);
+        return;
       } else {
         if (mounted) {
           setState(() {
-            _errorMessage =
-                'Could not reach server database. Check VPS connection.';
+            _errorMessage = 'User not registered in database. Please ask the administrator (Poppolouse) to add you.';
           });
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Connection error: $e';
+          final err = e.toString();
+          if (err.contains('User not registered') ||
+              err.contains('Kullanici veritabaninda')) {
+            _errorMessage = 'User not registered in database. Please ask the administrator (Poppolouse) to add you.';
+          } else {
+            _errorMessage =
+                'Could not reach server database ($kApiBaseUrl). Check connection.';
+          }
         });
       }
     } finally {
@@ -241,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Database: pz-vps (SQLite /var/lib/zomboclat/zomboclat.db)',
+                          'Server: 45.142.115.19:28080 (SQLite Backend)',
                           style: const TextStyle(
                             fontSize: 11,
                             color: Color(0xffa1a1aa),

@@ -688,7 +688,7 @@ extension DashConsoleMixin on _DashState {
           const SizedBox(height: 18),
           _specRow(
             'DATABASE',
-            'SQLite (pz-vps)',
+            'SQLite (45.142.115.19)',
             '/var/lib/zomboclat/zomboclat.db',
           ),
           const SizedBox(height: 10),

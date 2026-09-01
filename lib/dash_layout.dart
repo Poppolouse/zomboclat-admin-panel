@@ -646,7 +646,7 @@ extension DashLayoutMixin on _DashState {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'pz-vps â€¢ ${_latencyMs}ms',
+                        'pz-server • ${_latencyMs}ms',
                         style: const TextStyle(
                           fontSize: 10,
                           color: Color(0xffa1a1aa),

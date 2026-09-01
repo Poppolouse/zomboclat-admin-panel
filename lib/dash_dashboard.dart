@@ -54,7 +54,7 @@ extension DashDashboardMixin on _DashState {
                 ),
               const Spacer(),
               Text(
-                '${'Ping: '}${_latencyMs}ms (pz-vps)',
+                'Ping: ${_latencyMs}ms (pz-server)',
                 style: const TextStyle(
                   color: Color(0xffa1a1aa),
                   fontSize: 12,
@@ -314,7 +314,7 @@ extension DashDashboardMixin on _DashState {
                     ),
                     const Spacer(),
                     Text(
-                      'root@pz-vps (${'Uptime: '}$_serverUptime)',
+                      'pz-server (${'Uptime: '}$_serverUptime)',
                       style: const TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 11,

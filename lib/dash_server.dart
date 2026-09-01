@@ -7,20 +7,11 @@ extension DashServerMixin on _DashState {
 
     final stopwatch = Stopwatch()..start();
     try {
-      final result = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        '-o',
-        'ConnectTimeout=3',
-        'pz-vps',
-        "top -bn2 -d 0.1 | grep '%Cpu' | tail -n 1; free -b; uptime -p; systemctl is-active pzserver",
-      ], runInShell: true).timeout(const Duration(seconds: 4));
-
+      final raw = await ApiClient.getServerStatus();
       stopwatch.stop();
 
-      if (result.exitCode == 0 && mounted) {
-        final output = result.stdout.toString();
-        _parseServerOutput(output, stopwatch.elapsedMilliseconds);
+      if (raw.isNotEmpty && mounted) {
+        _parseServerOutput(raw, stopwatch.elapsedMilliseconds);
       } else if (mounted) {
         _applySimulatedFallback(stopwatch.elapsedMilliseconds);
       }
@@ -63,36 +54,39 @@ extension DashServerMixin on _DashState {
         if (line.startsWith('up ')) {
           _serverUptime = line.replaceFirst('up ', '').trim();
         }
-        if (line.trim() == 'active' ||
-            line.trim() == 'inactive' ||
-            line.trim() == 'failed') {
+        if (line.trim() == 'active' || line.trim() == 'inactive') {
           serviceAct = line.trim();
         }
       }
     } catch (_) {}
 
-    setState(() {
-      if (!_isRestarting) {
-        _serviceState = serviceAct;
-        _isServerOnline = serviceAct == 'active';
-      }
-      _latencyMs = elapsedMs > 0 ? elapsedMs.clamp(12, 120) : 24;
+    final isAct = serviceAct == 'active';
 
-      cpu.add(currentCpu);
-      ram.add(currentRamGb);
+    if (mounted) {
+      setState(() {
+        if (!_isRestarting) {
+          _serviceState = serviceAct;
+          _isServerOnline = isAct;
+        }
+        _latencyMs = elapsedMs > 0 ? elapsedMs.clamp(12, 120) : 24;
 
-      if (cpu.length > 54) {
-        cpu.removeAt(0);
-        ram.removeAt(0);
-      }
-    });
+        cpu.add(currentCpu);
+        ram.add(currentRamGb);
+
+        if (cpu.length > 54) {
+          cpu.removeAt(0);
+          ram.removeAt(0);
+        }
+      });
+    }
   }
 
   void _applySimulatedFallback(int elapsedMs) {
+    final rnd = Random();
     setState(() {
       _latencyMs = elapsedMs > 0 ? elapsedMs.clamp(18, 90) : 24;
-      cpu.add((2.5 + r.nextDouble() * 4.0).clamp(0.0, 100.0));
-      ram.add((6.12 + r.nextDouble() * 0.35).clamp(0.0, 16.0));
+      cpu.add((2.5 + rnd.nextDouble() * 4.0).clamp(0.0, 100.0));
+      ram.add((6.12 + rnd.nextDouble() * 0.35).clamp(0.0, 16.0));
       if (cpu.length > 54) {
         cpu.removeAt(0);
         ram.removeAt(0);
@@ -100,31 +94,16 @@ extension DashServerMixin on _DashState {
     });
   }
 
-  // SQLite Panel KullanÄ±cÄ±larÄ±nÄ± Ã‡ek
+  // SQLite Panel Kullanicilarini Cek
   Future<void> _fetchDbUsers() async {
     setState(() => _isLoadingUsers = true);
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        '-o',
-        'ConnectTimeout=4',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/db.py users',
-      ], runInShell: true).timeout(const Duration(seconds: 5));
-
-      if (res.exitCode == 0 && mounted) {
-        final jsonMap =
-            jsonDecode(res.stdout.toString().trim()) as Map<String, dynamic>;
-        if (jsonMap['status'] == 'ok' && jsonMap['users'] != null) {
-          final list = (jsonMap['users'] as List)
-              .map((e) => AppUser.fromJson(e as Map<String, dynamic>))
-              .toList();
-          setState(() {
-            _dbUsers.clear();
-            _dbUsers.addAll(list);
-          });
-        }
+      final list = await ApiClient.getPanelUsers();
+      if (mounted) {
+        setState(() {
+          _dbUsers.clear();
+          _dbUsers.addAll(list);
+        });
       }
     } catch (_) {
     } finally {
@@ -132,31 +111,16 @@ extension DashServerMixin on _DashState {
     }
   }
 
-  // SQLite GiriÅŸ-Ã‡Ä±kÄ±ÅŸ / Denetim LoglarÄ±nÄ± Ã‡ek
+  // SQLite Giris-Cikis / Denetim Loglarini Cek
   Future<void> _fetchAuditLogs() async {
     setState(() => _isLoadingAuditLogs = true);
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        '-o',
-        'ConnectTimeout=4',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/db.py logs',
-      ], runInShell: true).timeout(const Duration(seconds: 5));
-
-      if (res.exitCode == 0 && mounted) {
-        final jsonMap =
-            jsonDecode(res.stdout.toString().trim()) as Map<String, dynamic>;
-        if (jsonMap['status'] == 'ok' && jsonMap['logs'] != null) {
-          final list = (jsonMap['logs'] as List)
-              .map((e) => AuditLog.fromJson(e as Map<String, dynamic>))
-              .toList();
-          setState(() {
-            _auditLogs.clear();
-            _auditLogs.addAll(list);
-          });
-        }
+      final list = await ApiClient.getAuditLogs();
+      if (mounted) {
+        setState(() {
+          _auditLogs.clear();
+          _auditLogs.addAll(list);
+        });
       }
     } catch (_) {
     } finally {
@@ -164,25 +128,12 @@ extension DashServerMixin on _DashState {
     }
   }
 
-  // Sunucu Journal LoglarÄ±nÄ± Ã‡ek (CanlÄ± AkÄ±ÅŸ DesteÄŸiyle)
+  // Sunucu Journal Loglarini Cek (Canli Akis Destegiyle)
   Future<void> _fetchServerLogs({bool isBackground = false}) async {
     if (!isBackground) setState(() => _isLoadingServerLogs = true);
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        '-o',
-        'ConnectTimeout=3',
-        'pz-vps',
-        'journalctl -u pzserver -n 250 --no-pager',
-      ], runInShell: true).timeout(const Duration(seconds: 4));
-
-      if (res.exitCode == 0 && mounted) {
-        final lines = res.stdout
-            .toString()
-            .split('\n')
-            .where((s) => s.trim().isNotEmpty)
-            .toList();
+      final lines = await ApiClient.getServerLogs(lines: 250);
+      if (mounted) {
         setState(() {
           _serverLogs.clear();
           _serverLogs.addAll(lines);
@@ -206,75 +157,63 @@ extension DashServerMixin on _DashState {
     }
   }
 
-  // INI AyarlarÄ±nÄ± Ã‡ek (Yorumlar ve Steam Workshop DetaylarÄ± Dahil)
+  // INI Ayarlarini Cek (Yorumlar ve Steam Workshop Detaylari Dahil)
   Future<void> _fetchIniConfig() async {
     setState(() => _isLoadingIni = true);
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        '-o',
-        'ConnectTimeout=6',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/config_manager.py get_ini',
-      ], runInShell: true).timeout(const Duration(seconds: 8));
-
-      if (res.exitCode == 0 && mounted) {
-        final jsonMap =
-            jsonDecode(res.stdout.toString().trim()) as Map<String, dynamic>;
-        if (jsonMap['status'] == 'ok') {
-          setState(() {
-            _iniSettings.clear();
-            if (jsonMap['settings'] != null) {
-              (jsonMap['settings'] as Map<String, dynamic>).forEach((k, v) {
-                _iniSettings[k] = v.toString();
-              });
-            }
-            _iniComments.clear();
-            if (jsonMap['comments'] != null) {
-              (jsonMap['comments'] as Map<String, dynamic>).forEach((k, v) {
-                _iniComments[k] = v.toString();
-              });
-            }
-            _iniKeys.clear();
-            if (jsonMap['keys'] != null) {
-              _iniKeys.addAll(
-                (jsonMap['keys'] as List).map((e) => e.toString()),
-              );
-            }
-            _iniMods.clear();
-            if (jsonMap['mods'] != null) {
-              _iniMods.addAll(
-                (jsonMap['mods'] as List).map((e) => e.toString()),
-              );
-            }
-            _iniWorkshopItems.clear();
-            if (jsonMap['workshop_items'] != null) {
-              _iniWorkshopItems.addAll(
-                (jsonMap['workshop_items'] as List).map((e) => e.toString()),
-              );
-            }
-            _workshopDetails.clear();
-            if (jsonMap['workshop_details'] != null) {
-              (jsonMap['workshop_details'] as Map<String, dynamic>).forEach((
-                k,
-                v,
-              ) {
-                if (v is Map) {
-                  _workshopDetails[k] = Map<String, dynamic>.from(v);
-                }
-              });
-            }
-            _modDetails.clear();
-            if (jsonMap['mod_details'] != null) {
-              (jsonMap['mod_details'] as Map<String, dynamic>).forEach((k, v) {
-                if (v is Map) {
-                  _modDetails[k] = Map<String, dynamic>.from(v);
-                }
-              });
-            }
-          });
-        }
+      final jsonMap = await ApiClient.getIniConfig();
+      if (jsonMap['status'] == 'ok' && mounted) {
+        setState(() {
+          _iniSettings.clear();
+          if (jsonMap['settings'] != null) {
+            (jsonMap['settings'] as Map<String, dynamic>).forEach((k, v) {
+              _iniSettings[k] = v.toString();
+            });
+          }
+          _iniComments.clear();
+          if (jsonMap['comments'] != null) {
+            (jsonMap['comments'] as Map<String, dynamic>).forEach((k, v) {
+              _iniComments[k] = v.toString();
+            });
+          }
+          _iniKeys.clear();
+          if (jsonMap['keys'] != null) {
+            _iniKeys.addAll(
+              (jsonMap['keys'] as List).map((e) => e.toString()),
+            );
+          }
+          _iniMods.clear();
+          if (jsonMap['mods'] != null) {
+            _iniMods.addAll(
+              (jsonMap['mods'] as List).map((e) => e.toString()),
+            );
+          }
+          _iniWorkshopItems.clear();
+          if (jsonMap['workshop_items'] != null) {
+            _iniWorkshopItems.addAll(
+              (jsonMap['workshop_items'] as List).map((e) => e.toString()),
+            );
+          }
+          _workshopDetails.clear();
+          if (jsonMap['workshop_details'] != null) {
+            (jsonMap['workshop_details'] as Map<String, dynamic>).forEach((
+              k,
+              v,
+            ) {
+              if (v is Map) {
+                _workshopDetails[k] = Map<String, dynamic>.from(v);
+              }
+            });
+          }
+          _modDetails.clear();
+          if (jsonMap['mod_details'] != null) {
+            (jsonMap['mod_details'] as Map<String, dynamic>).forEach((k, v) {
+              if (v is Map) {
+                _modDetails[k] = Map<String, dynamic>.from(v);
+              }
+            });
+          }
+        });
       }
     } catch (_) {
     } finally {
@@ -282,33 +221,19 @@ extension DashServerMixin on _DashState {
     }
   }
 
-  // INI AyarlarÄ±nÄ± Kaydet
+  // INI Ayarlarini Kaydet
   Future<void> _saveIniConfig() async {
     if (!widget.user.isAdmin) return;
     setState(() => _isSavingIni = true);
     final sm = ScaffoldMessenger.of(context);
     try {
-      final payload = jsonEncode({
-        'settings': _iniSettings,
-        'mods': _iniMods,
-        'workshop_items': _iniWorkshopItems,
-      });
-      final b64 = base64Encode(utf8.encode(payload));
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/config_manager.py save_ini_b64 "$b64"',
-      ], runInShell: true);
-      final jsonMap =
-          jsonDecode(res.stdout.toString().trim()) as Map<String, dynamic>;
+      final jsonMap = await ApiClient.saveIniConfig(
+        settings: _iniSettings,
+        mods: _iniMods,
+        workshopItems: _iniWorkshopItems,
+        username: widget.user.username,
+      );
       if (jsonMap['status'] == 'ok') {
-        Process.run('ssh', [
-          '-o',
-          'BatchMode=yes',
-          'pz-vps',
-          'python3 /var/lib/zomboclat/db.py log ${widget.user.username} INI_UPDATE "pzserver.ini ve mod ayarlari guncellendi"',
-        ], runInShell: true);
         _fetchAuditLogs();
         sm.showSnackBar(
           SnackBar(
@@ -336,48 +261,38 @@ extension DashServerMixin on _DashState {
     }
   }
 
-  // SandboxVars AyarlarÄ±nÄ± Ã‡ek (Yorumlar Dahil)
+  // SandboxVars Ayarlarini Cek (Yorumlar Dahil)
   Future<void> _fetchSandboxConfig() async {
     setState(() => _isLoadingSandbox = true);
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        '-o',
-        'ConnectTimeout=4',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/config_manager.py get_sandbox',
-      ], runInShell: true).timeout(const Duration(seconds: 6));
-
-      if (res.exitCode == 0 && mounted) {
-        final jsonMap =
-            jsonDecode(res.stdout.toString().trim()) as Map<String, dynamic>;
-        if (jsonMap['status'] == 'ok' && jsonMap['categories'] != null) {
-          final cats = jsonMap['categories'] as Map<String, dynamic>;
-          setState(() {
-            _sandboxCategories.clear();
-            cats.forEach((catKey, items) {
-              _sandboxCategories[catKey] = (items as List)
-                  .map((it) => Map<String, dynamic>.from(it as Map))
-                  .toList();
-            });
-            _sandboxCategoryMeta.clear();
-            if (jsonMap['category_meta'] != null) {
-              (jsonMap['category_meta'] as Map<String, dynamic>).forEach((
-                k,
-                v,
-              ) {
-                if (v is Map) {
-                  _sandboxCategoryMeta[k] = Map<String, dynamic>.from(v);
-                }
-              });
-            }
-            if (!_sandboxCategories.containsKey(_selectedSandboxCategory) &&
-                _sandboxCategories.isNotEmpty) {
-              _selectedSandboxCategory = _sandboxCategories.keys.first;
-            }
+      final jsonMap = await ApiClient.getSandboxConfig();
+      if (jsonMap['status'] == 'ok' &&
+          jsonMap['categories'] != null &&
+          mounted) {
+        final cats = jsonMap['categories'] as Map<String, dynamic>;
+        setState(() {
+          _sandboxCategories.clear();
+          cats.forEach((catKey, items) {
+            _sandboxCategories[catKey] = (items as List)
+                .map((it) => Map<String, dynamic>.from(it as Map))
+                .toList();
           });
-        }
+          _sandboxCategoryMeta.clear();
+          if (jsonMap['category_meta'] != null) {
+            (jsonMap['category_meta'] as Map<String, dynamic>).forEach((
+              k,
+              v,
+            ) {
+              if (v is Map) {
+                _sandboxCategoryMeta[k] = Map<String, dynamic>.from(v);
+              }
+            });
+          }
+          if (!_sandboxCategories.containsKey(_selectedSandboxCategory) &&
+              _sandboxCategories.isNotEmpty) {
+            _selectedSandboxCategory = _sandboxCategories.keys.first;
+          }
+        });
       }
     } catch (_) {
     } finally {
@@ -385,29 +300,17 @@ extension DashServerMixin on _DashState {
     }
   }
 
-  // SandboxVars AyarlarÄ±nÄ± Kaydet
+  // SandboxVars Ayarlarini Kaydet
   Future<void> _saveSandboxConfig() async {
     if (!widget.user.isAdmin) return;
     setState(() => _isSavingSandbox = true);
     final sm = ScaffoldMessenger.of(context);
     try {
-      final payload = jsonEncode({'categories': _sandboxCategories});
-      final b64 = base64Encode(utf8.encode(payload));
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/config_manager.py save_sandbox_b64 "$b64"',
-      ], runInShell: true);
-      final jsonMap =
-          jsonDecode(res.stdout.toString().trim()) as Map<String, dynamic>;
+      final jsonMap = await ApiClient.saveSandboxConfig(
+        categories: _sandboxCategories,
+        username: widget.user.username,
+      );
       if (jsonMap['status'] == 'ok') {
-        Process.run('ssh', [
-          '-o',
-          'BatchMode=yes',
-          'pz-vps',
-          'python3 /var/lib/zomboclat/db.py log ${widget.user.username} SANDBOX_UPDATE "pzserver_SandboxVars.lua ayarlari guncellendi"',
-        ], runInShell: true);
         _fetchAuditLogs();
         sm.showSnackBar(
           SnackBar(
@@ -554,15 +457,11 @@ extension DashServerMixin on _DashState {
 
                 final sm = ScaffoldMessenger.of(context);
                 try {
-                  final res = await Process.run('ssh', [
-                    '-o',
-                    'BatchMode=yes',
-                    'pz-vps',
-                    'python3 /var/lib/zomboclat/db.py add "$uname" $selectedRole "${widget.user.username}"',
-                  ], runInShell: true);
-                  final jsonMap = jsonDecode(
-                    res.stdout.toString().trim(),
-                  ) as Map<String, dynamic>;
+                  final jsonMap = await ApiClient.addPanelUser(
+                    username: uname,
+                    role: selectedRole,
+                    byUser: widget.user.username,
+                  );
                   if (jsonMap['status'] == 'ok') {
                     _fetchDbUsers();
                     _fetchAuditLogs();
@@ -599,7 +498,7 @@ extension DashServerMixin on _DashState {
     );
   }
 
-  // Panel KullanÄ±cÄ±sÄ± Sil (Admin)
+  // Panel Kullanicisi Sil (Admin)
   void _deleteUser(String username) async {
     final sm = ScaffoldMessenger.of(context);
     final confirm = await showDialog<bool>(
@@ -635,14 +534,10 @@ extension DashServerMixin on _DashState {
     if (confirm != true) return;
 
     try {
-      final res = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/db.py del "$username" "${widget.user.username}"',
-      ], runInShell: true);
-      final jsonMap =
-          jsonDecode(res.stdout.toString().trim()) as Map<String, dynamic>;
+      final jsonMap = await ApiClient.deletePanelUser(
+        username: username,
+        byUser: widget.user.username,
+      );
       if (jsonMap['status'] == 'ok') {
         _fetchDbUsers();
         _fetchAuditLogs();
@@ -670,7 +565,7 @@ extension DashServerMixin on _DashState {
     }
   }
 
-  // Sunucu Komutu Ã‡alÄ±ÅŸtÄ±r & Logla
+  // Sunucu Komutu Calistir & Logla
   Future<void> _executeServerCommand(String action) async {
     final canExecute = action == 'restart'
         ? widget.user.canRestartServer
@@ -687,37 +582,12 @@ extension DashServerMixin on _DashState {
     });
 
     try {
-      final remoteCommand = action == 'restart'
-          ? "systemctl restart pzserver; for i in \$(seq 1 90); do if systemctl is-active --quiet pzserver && ss -lun | grep -q ':16261 '; then exit 0; fi; sleep 2; done; echo 'Timed out waiting for pzserver UDP port 16261.' >&2; exit 1"
-          : 'systemctl $action pzserver';
-      final commandResult = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        'pz-vps',
-        remoteCommand,
-      ], runInShell: true).timeout(const Duration(minutes: 3));
-      if (commandResult.exitCode != 0) {
-        final details = commandResult.stderr.toString().trim().isNotEmpty
-            ? commandResult.stderr.toString().trim()
-            : commandResult.stdout.toString().trim();
-        throw StateError(
-          details.isEmpty ? 'systemctl $action pzserver failed.' : details,
-        );
-      }
-
-      final logResult = await Process.run('ssh', [
-        '-o',
-        'BatchMode=yes',
-        'pz-vps',
-        'python3 /var/lib/zomboclat/db.py log ${widget.user.username} SERVER_${action.toUpperCase()} "pzserver.service $action executed"',
-      ], runInShell: true);
-      if (logResult.exitCode != 0) {
-        final details = logResult.stderr.toString().trim();
-        throw StateError(
-          details.isEmpty
-              ? 'Server command succeeded but could not be written to the audit log.'
-              : details,
-        );
+      final res = await ApiClient.executeServerCommand(
+        action: action,
+        username: widget.user.username,
+      );
+      if (res['status'] != 'ok') {
+        throw StateError(res['message']?.toString() ?? 'Command execution failed');
       }
 
       if (action == 'restart' && mounted) setState(() => _isRestarting = false);
