@@ -1,6 +1,6 @@
 part of 'main.dart';
 
-const _appVersion = '1.0.2';
+const _appVersion = '1.0.3';
 const _releaseApi =
     'https://api.github.com/repos/Poppolouse/zomboclat-admin-panel/releases/latest';
 const _installerName = 'Zomboclat-Admin-Panel-Setup.exe';
@@ -39,9 +39,11 @@ extension AppUpdateService on _AppState {
       );
       final url = installer['browser_download_url'] as String?;
       if (url == null || url.isEmpty) return;
-      _showUpdateDialog(latest, url);
+      await _downloadAndLaunchInstaller(url);
     } catch (_) {
       // Update checks must never interrupt normal administration work.
+    } finally {
+      if (mounted) setState(() => _isCheckingForUpdate = false);
     }
   }
 
@@ -56,30 +58,6 @@ extension AppUpdateService on _AppState {
       if (a != b) return a > b;
     }
     return false;
-  }
-
-  void _showUpdateDialog(String version, String downloadUrl) {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Update available'),
-        content: Text('Version $version is ready. Install it now?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Later'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              await _downloadAndLaunchInstaller(downloadUrl);
-            },
-            child: const Text('Update now'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _downloadAndLaunchInstaller(String downloadUrl) async {
@@ -99,14 +77,6 @@ extension AppUpdateService on _AppState {
         '/NORESTART',
       ]);
       exit(0);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Update download failed. Please try again later.'),
-          ),
-        );
-      }
-    }
+    } catch (_) {}
   }
 }

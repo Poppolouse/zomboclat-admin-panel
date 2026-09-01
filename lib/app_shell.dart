@@ -9,11 +9,12 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   AppUser? _currentUser;
+  bool _isCheckingForUpdate = true;
 
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(const Duration(seconds: 2), _checkForUpdate);
+    _checkForUpdate();
   }
 
   void _login(AppUser user) {
@@ -57,11 +58,31 @@ class _AppState extends State<App> {
           surface: Color(0xff27272a),
         ),
       ),
-      home: _currentUser == null
+      home: _isCheckingForUpdate
+          ? const _UpdateCheckScreen()
+          : _currentUser == null
           ? LoginScreen(onLoginSuccess: _login)
           : Dash(user: _currentUser!, onLogout: _logout),
     );
   }
+}
+
+class _UpdateCheckScreen extends StatelessWidget {
+  const _UpdateCheckScreen();
+
+  @override
+  Widget build(BuildContext context) => const Scaffold(
+    body: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(),
+          SizedBox(height: 16),
+          Text('Checking for updates...'),
+        ],
+      ),
+    ),
+  );
 }
 
 // -------------------------------------------------------------
