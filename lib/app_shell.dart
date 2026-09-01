@@ -77,7 +77,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController(text: 'Poppolouse');
+  final _usernameController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
 
