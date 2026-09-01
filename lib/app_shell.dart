@@ -10,6 +10,12 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   AppUser? _currentUser;
 
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(seconds: 2), _checkForUpdate);
+  }
+
   void _login(AppUser user) {
     setState(() {
       _currentUser = user;
@@ -20,11 +26,14 @@ class _AppState extends State<App> {
     if (_currentUser != null) {
       final username = _currentUser!.username;
       try {
-        Process.run(
-          'ssh',
-          ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=3', 'pz-vps', 'python3 /var/lib/zomboclat/db.py log $username LOGOUT "Session Closed"'],
-          runInShell: true,
-        );
+        Process.run('ssh', [
+          '-o',
+          'BatchMode=yes',
+          '-o',
+          'ConnectTimeout=3',
+          'pz-vps',
+          'python3 /var/lib/zomboclat/db.py log $username LOGOUT "Session Closed"',
+        ], runInShell: true);
       } catch (_) {}
     }
     setState(() {
@@ -49,13 +58,8 @@ class _AppState extends State<App> {
         ),
       ),
       home: _currentUser == null
-          ? LoginScreen(
-              onLoginSuccess: _login,
-            )
-          : Dash(
-              user: _currentUser!,
-              onLogout: _logout,
-            ),
+          ? LoginScreen(onLoginSuccess: _login)
+          : Dash(user: _currentUser!, onLogout: _logout),
     );
   }
 }
@@ -66,10 +70,7 @@ class _AppState extends State<App> {
 class LoginScreen extends StatefulWidget {
   final Function(AppUser) onLoginSuccess;
 
-  const LoginScreen({
-    super.key,
-    required this.onLoginSuccess,
-  });
+  const LoginScreen({super.key, required this.onLoginSuccess});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -79,8 +80,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController(text: 'Poppolouse');
   bool _isLoading = false;
   String? _errorMessage;
-
-  
 
   @override
   void dispose() {
@@ -101,25 +100,23 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final res = await Process.run(
-        'ssh',
-        [
-          '-o',
-          'BatchMode=yes',
-          '-o',
-          'ConnectTimeout=4',
-          'pz-vps',
-          'python3 /var/lib/zomboclat/db.py auth $username',
-        ],
-        runInShell: true,
-      ).timeout(const Duration(seconds: 5));
+      final res = await Process.run('ssh', [
+        '-o',
+        'BatchMode=yes',
+        '-o',
+        'ConnectTimeout=4',
+        'pz-vps',
+        'python3 /var/lib/zomboclat/db.py auth $username',
+      ], runInShell: true).timeout(const Duration(seconds: 5));
 
       if (res.exitCode == 0) {
         final raw = res.stdout.toString().trim();
         final jsonMap = jsonDecode(raw) as Map<String, dynamic>;
 
         if (jsonMap['status'] == 'ok' && jsonMap['user'] != null) {
-          final appUser = AppUser.fromJson(jsonMap['user'] as Map<String, dynamic>);
+          final appUser = AppUser.fromJson(
+            jsonMap['user'] as Map<String, dynamic>,
+          );
           widget.onLoginSuccess(appUser);
           return;
         } else {
@@ -132,7 +129,8 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         if (mounted) {
           setState(() {
-            _errorMessage = 'Could not reach server database. Check VPS connection.';
+            _errorMessage =
+                'Could not reach server database. Check VPS connection.';
           });
         }
       }
@@ -169,7 +167,11 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.dns_rounded, size: 20, color: Color(0xff3b82f6)),
+                    const Icon(
+                      Icons.dns_rounded,
+                      size: 20,
+                      color: Color(0xff3b82f6),
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -185,7 +187,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           Text(
                             'VPS SQLite Authenticated Login',
-                            style: const TextStyle(fontSize: 11.5, color: Color(0xffa1a1aa)),
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              color: Color(0xffa1a1aa),
+                            ),
                           ),
                         ],
                       ),
@@ -196,7 +201,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Divider(color: Color(0xff3f3f46), height: 1),
                 const SizedBox(height: 20),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xff18181b),
                     borderRadius: BorderRadius.circular(6),
@@ -204,12 +212,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.storage_outlined, size: 16, color: Color(0xffa1a1aa)),
+                      const Icon(
+                        Icons.storage_outlined,
+                        size: 16,
+                        color: Color(0xffa1a1aa),
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-'Database: pz-vps (SQLite /var/lib/zomboclat/zomboclat.db)',
-                          style: const TextStyle(fontSize: 11, color: Color(0xffa1a1aa), fontFamily: 'monospace'),
+                          'Database: pz-vps (SQLite /var/lib/zomboclat/zomboclat.db)',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xffa1a1aa),
+                            fontFamily: 'monospace',
+                          ),
                         ),
                       ),
                     ],
@@ -227,15 +243,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 6),
                 TextField(
                   controller: _usernameController,
-                  style: const TextStyle(fontSize: 13.5, color: Color(0xfff4f4f5)),
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    color: Color(0xfff4f4f5),
+                  ),
                   decoration: InputDecoration(
                     isDense: true,
                     filled: true,
                     fillColor: const Color(0xff18181b),
-                    prefixIcon: const Icon(Icons.person_outline, size: 17, color: Color(0xffa1a1aa)),
+                    prefixIcon: const Icon(
+                      Icons.person_outline,
+                      size: 17,
+                      color: Color(0xffa1a1aa),
+                    ),
                     hintText: 'Enter your username',
-                    hintStyle: const TextStyle(color: Color(0xff71717a), fontSize: 13),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                    hintStyle: const TextStyle(
+                      color: Color(0xff71717a),
+                      fontSize: 13,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 11,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
                       borderSide: const BorderSide(color: Color(0xff3f3f46)),
@@ -246,7 +275,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: Color(0xff3b82f6), width: 1.2),
+                      borderSide: const BorderSide(
+                        color: Color(0xff3b82f6),
+                        width: 1.2,
+                      ),
                     ),
                   ),
                   onSubmitted: (_) => _handleLogin(),
@@ -263,7 +295,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: Color(0xfffca5a5), fontSize: 11.5),
+                      style: const TextStyle(
+                        color: Color(0xfffca5a5),
+                        fontSize: 11.5,
+                      ),
                     ),
                   ),
                 ],
@@ -285,7 +320,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -294,7 +332,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(width: 8),
                               Text(
                                 'Sign In to Panel',
-                                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
@@ -304,7 +345,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 Center(
                   child: Text(
                     'Users added to the database by Admin can log in directly.',
-                    style: const TextStyle(fontSize: 11, color: Color(0xff71717a)),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Color(0xff71717a),
+                    ),
                   ),
                 ),
               ],

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 part 'models.dart';
+part 'update_service.dart';
 part 'app_shell.dart';
 part 'dash_core.dart';
 part 'dash_players.dart';
