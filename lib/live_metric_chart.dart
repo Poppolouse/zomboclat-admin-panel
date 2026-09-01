@@ -70,10 +70,7 @@ class _LiveMetricChartState extends State<LiveMetricChart> {
         decoration: BoxDecoration(
           color: const Color(0xff27272a),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: const Color(0xff3f3f46),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xff3f3f46), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,7 +91,11 @@ class _LiveMetricChartState extends State<LiveMetricChart> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      _isHovered ? 'Hover Point' : (widget.totalCapacity != null ? 'Max Capacity: ${widget.totalCapacity}' : 'Maximum: 100%'),
+                      _isHovered
+                          ? 'Hover Point'
+                          : (widget.totalCapacity != null
+                                ? 'Max Capacity: ${widget.totalCapacity}'
+                                : 'Maximum: 100%'),
                       style: const TextStyle(
                         fontSize: 11,
                         color: Color(0xff71717a),
@@ -105,7 +106,10 @@ class _LiveMetricChartState extends State<LiveMetricChart> {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xff18181b),
                     borderRadius: BorderRadius.circular(6),
@@ -138,18 +142,29 @@ class _LiveMetricChartState extends State<LiveMetricChart> {
 
                   Offset? activePoint;
                   String? timeOffsetStr;
-                  if (_hoverIndex != null && widget.data.isNotEmpty && plotWidth > 0) {
+                  if (_hoverIndex != null &&
+                      widget.data.isNotEmpty &&
+                      plotWidth > 0) {
                     final count = widget.data.length;
-                    final x = leftGutter +
-                        (count > 1 ? (_hoverIndex! / (count - 1)) * plotWidth : plotWidth / 2);
+                    final x =
+                        leftGutter +
+                        (count > 1
+                            ? (_hoverIndex! / (count - 1)) * plotWidth
+                            : plotWidth / 2);
                     final v = widget.data[_hoverIndex!];
-                    final y = topGutter +
+                    final y =
+                        topGutter +
                         plotHeight -
-                        (v / widget.maxValue * plotHeight).clamp(0.0, plotHeight);
+                        (v / widget.maxValue * plotHeight).clamp(
+                          0.0,
+                          plotHeight,
+                        );
                     activePoint = Offset(x, y);
 
                     final secAgo = ((count - 1 - _hoverIndex!) * 0.75);
-                    timeOffsetStr = secAgo <= 0.1 ? 'Now' : '${secAgo.toStringAsFixed(1)}s ago';
+                    timeOffsetStr = secAgo <= 0.1
+                        ? 'Now'
+                        : '${secAgo.toStringAsFixed(1)}s ago';
                   }
 
                   return MouseRegion(
@@ -166,17 +181,22 @@ class _LiveMetricChartState extends State<LiveMetricChart> {
                               color: widget.color,
                               maxValue: widget.maxValue,
                               unit: widget.unit,
-hoverIndex: _hoverIndex,
+                              hoverIndex: _hoverIndex,
                             ),
                           ),
                         ),
-                        if (_isHovered && activePoint != null && timeOffsetStr != null)
+                        if (_isHovered &&
+                            activePoint != null &&
+                            timeOffsetStr != null)
                           Positioned(
                             left: (activePoint.dx - 45).clamp(
                               leftGutter,
                               chartWidth - rightGutter - 90,
                             ),
-                            top: (activePoint.dy - 48).clamp(0.0, chartHeight - 40),
+                            top: (activePoint.dy - 48).clamp(
+                              0.0,
+                              chartHeight - 40,
+                            ),
                             child: IgnorePointer(
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
@@ -353,7 +373,8 @@ class InteractiveChartPainter extends CustomPainter {
     final points = <Offset>[];
     for (var i = 0; i < data.length; i++) {
       final x = leftGutter + (i * plotWidth / (data.length - 1));
-      final y = topGutter +
+      final y =
+          topGutter +
           plotHeight -
           (data[i] / maxValue * plotHeight).clamp(0.0, plotHeight);
       points.add(Offset(x, y));

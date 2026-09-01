@@ -200,16 +200,17 @@ extension DashPlayersViewMixin on _DashState {
                       itemBuilder: (ctx, i) {
                         final p = filteredPlayers[i];
                         Color roleColor = const Color(0xffa1a1aa);
-                        if (p.roleId == 7)
+                        if (p.roleId == 7) {
                           roleColor = const Color(0xffef4444); // admin
-                        if (p.roleId == 6)
+                        } else if (p.roleId == 6) {
                           roleColor = const Color(0xff22c55e); // moderator
-                        if (p.roleId == 5 || p.roleId == 4)
+                        } else if (p.roleId == 5 || p.roleId == 4) {
                           roleColor = const Color(0xff38bdf8); // gm / observer
-                        if (p.roleId == 3)
+                        } else if (p.roleId == 3) {
                           roleColor = const Color(0xfffacc15); // priority
-                        if (p.roleId == 1)
+                        } else if (p.roleId == 1) {
                           roleColor = const Color(0xff71717a); // banned
+                        }
 
                         final hasSteamAvatar =
                             p.steamAvatar != null && p.steamAvatar!.isNotEmpty;
@@ -537,10 +538,13 @@ extension DashPlayersViewMixin on _DashState {
                       itemBuilder: (ctx, i) {
                         final log = _gameUserLogs[i];
                         Color tagColor = const Color(0xffeab308);
-                        if (log.type.toLowerCase().contains('kick'))
+                        if (log.type.toLowerCase().contains('kick')) {
                           tagColor = const Color(0xffef4444);
-                        if (log.type.toLowerCase().contains('suspicious'))
+                        } else if (log.type.toLowerCase().contains(
+                          'suspicious',
+                        )) {
                           tagColor = const Color(0xfff97316);
+                        }
 
                         return Padding(
                           padding: const EdgeInsets.symmetric(

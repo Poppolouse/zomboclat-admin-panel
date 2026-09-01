@@ -401,7 +401,7 @@ extension DashLayoutMixin on _DashState {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               children: [
                 // BÃ–LÃœM 1: CANLI ADMÄ°N YÃ–NETÄ°MÄ° & LOGLAR
-                _sidebarSectionHeader('âš¡ LIVE ADMIN & LOGS'),
+                _sidebarSectionHeader('LIVE ADMIN & LOGS'),
                 _navItem(
                   index: 0,
                   title: 'Dashboard & Control',
@@ -500,7 +500,7 @@ extension DashLayoutMixin on _DashState {
                 _sidebarDivider(),
 
                 // BÃ–LÃœM 3: MOD YÃ–NETÄ°MÄ°
-                _sidebarSectionHeader('ðŸ“¦ MOD MANAGEMENT'),
+                _sidebarSectionHeader('MOD MANAGEMENT'),
                 _expandableGroup(
                   title: 'Mods & Load Order',
                   icon: Icons.extension_rounded,
@@ -532,7 +532,7 @@ extension DashLayoutMixin on _DashState {
                 _sidebarDivider(),
 
                 // BÃ–LÃœM 4: VPS & PANEL YÃ–NETÄ°MÄ°
-                _sidebarSectionHeader('ðŸ›¡ï¸ VPS & PANEL AUTH'),
+                _sidebarSectionHeader('VPS & PANEL AUTH'),
                 _navItem(
                   index: 3,
                   title: 'Panel Users (SQLite)',

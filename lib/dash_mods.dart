@@ -751,8 +751,9 @@ extension DashModsMixin on _DashState {
                           workshopTitle.toLowerCase().contains(
                             _modOrderSearchQuery.toLowerCase(),
                           );
-                      if (!isMatch)
+                      if (!isMatch) {
                         return Container(key: ValueKey('hidden-$modId-$i'));
+                      }
 
                       return Container(
                         key: ValueKey('order-$modId-$i'),

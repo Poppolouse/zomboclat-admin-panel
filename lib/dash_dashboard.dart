@@ -113,7 +113,7 @@ extension DashDashboardMixin on _DashState {
                 ],
               ),
               const Spacer(),
-              if (widget.user.isAdmin) ...[
+              if (widget.user.canRestartServer) ...[
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xff382b09),
@@ -148,78 +148,80 @@ extension DashDashboardMixin on _DashState {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                if (_isServerOnline)
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xff3f1717),
-                      foregroundColor: const Color(0xfffca5a5),
-                      elevation: 0,
-                      side: const BorderSide(
-                        color: Color(0xffdc2626),
-                        width: 1.2,
+                if (widget.user.isAdmin) ...[
+                  const SizedBox(width: 12),
+                  if (_isServerOnline)
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff3f1717),
+                        foregroundColor: const Color(0xfffca5a5),
+                        elevation: 0,
+                        side: const BorderSide(
+                          color: Color(0xffdc2626),
+                          width: 1.2,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                      onPressed: _isActionRunning
+                          ? null
+                          : () => _confirmAction('Stop', 'stop'),
+                      icon: const Icon(
+                        Icons.stop_circle_rounded,
+                        size: 18,
+                        color: Color(0xfff87171),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
+                      label: Text(
+                        'Stop Server',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xfffecaca),
+                        ),
+                      ),
+                    )
+                  else
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xff14381e),
+                        foregroundColor: const Color(0xff86efac),
+                        elevation: 0,
+                        side: const BorderSide(
+                          color: Color(0xff16a34a),
+                          width: 1.2,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      onPressed: _isActionRunning
+                          ? null
+                          : () => _executeServerCommand('start'),
+                      icon: const Icon(
+                        Icons.play_circle_filled_rounded,
+                        size: 18,
+                        color: Color(0xff4ade80),
+                      ),
+                      label: Text(
+                        'Start Server',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xffbbf7d0),
+                        ),
                       ),
                     ),
-                    onPressed: _isActionRunning
-                        ? null
-                        : () => _confirmAction('Stop', 'stop'),
-                    icon: const Icon(
-                      Icons.stop_circle_rounded,
-                      size: 18,
-                      color: Color(0xfff87171),
-                    ),
-                    label: Text(
-                      'Stop Server',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xfffecaca),
-                      ),
-                    ),
-                  )
-                else
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xff14381e),
-                      foregroundColor: const Color(0xff86efac),
-                      elevation: 0,
-                      side: const BorderSide(
-                        color: Color(0xff16a34a),
-                        width: 1.2,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                    ),
-                    onPressed: _isActionRunning
-                        ? null
-                        : () => _executeServerCommand('start'),
-                    icon: const Icon(
-                      Icons.play_circle_filled_rounded,
-                      size: 18,
-                      color: Color(0xff4ade80),
-                    ),
-                    label: Text(
-                      'Start Server',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xffbbf7d0),
-                      ),
-                    ),
-                  ),
-              ] else ...[
+                ],
+              ] else if (!widget.user.canRestartServer) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,

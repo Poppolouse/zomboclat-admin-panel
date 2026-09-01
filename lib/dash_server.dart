@@ -200,8 +200,9 @@ extension DashServerMixin on _DashState {
       }
     } catch (_) {
     } finally {
-      if (mounted && !isBackground)
+      if (mounted && !isBackground) {
         setState(() => _isLoadingServerLogs = false);
+      }
     }
   }
 
@@ -671,7 +672,10 @@ extension DashServerMixin on _DashState {
 
   // Sunucu Komutu Ã‡alÄ±ÅŸtÄ±r & Logla
   Future<void> _executeServerCommand(String action) async {
-    if (!widget.user.isAdmin) return;
+    final canExecute = action == 'restart'
+        ? widget.user.canRestartServer
+        : widget.user.isAdmin;
+    if (!canExecute) return;
     if (_isActionRunning) return;
     setState(() {
       _isActionRunning = true;
@@ -705,13 +709,13 @@ extension DashServerMixin on _DashState {
         '-o',
         'BatchMode=yes',
         'pz-vps',
-        'python3 /var/lib/zomboclat/db.py log ${widget.user.username} SERVER_${action.toUpperCase()} "pzserver.service $action calistirildi"',
+        'python3 /var/lib/zomboclat/db.py log ${widget.user.username} SERVER_${action.toUpperCase()} "pzserver.service $action executed"',
       ], runInShell: true);
       if (logResult.exitCode != 0) {
         final details = logResult.stderr.toString().trim();
         throw StateError(
           details.isEmpty
-              ? 'Sunucu komutu uygulandi ancak islem gunluge yazilamadi.'
+              ? 'Server command succeeded but could not be written to the audit log.'
               : details,
         );
       }
@@ -734,7 +738,7 @@ extension DashServerMixin on _DashState {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xff991b1b),
-            content: Text('Hata: $e'),
+            content: Text('Error: $e'),
           ),
         );
       }
@@ -749,6 +753,10 @@ extension DashServerMixin on _DashState {
   }
 
   void _confirmAction(String actionName, String command) {
+    final canExecute = command == 'restart'
+        ? widget.user.canRestartServer
+        : widget.user.isAdmin;
+    if (!canExecute) return;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

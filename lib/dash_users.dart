@@ -1,6 +1,26 @@
 part of 'main.dart';
 
 extension DashUsersMixin on _DashState {
+  String _auditDetailsInEnglish(String details) {
+    return details
+        .replaceAll(
+          'pzserver.service restart calistirildi',
+          'pzserver.service restart executed',
+        )
+        .replaceAll(
+          'pzserver.service start calistirildi',
+          'pzserver.service start executed',
+        )
+        .replaceAll(
+          'pzserver.service stop calistirildi',
+          'pzserver.service stop executed',
+        )
+        .replaceAll(
+          'Sunucu komutu uygulandi ancak islem gunluge yazilamadi.',
+          'Server command succeeded but could not be written to the audit log.',
+        );
+  }
+
   Widget _badgeChip(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -313,18 +333,19 @@ extension DashUsersMixin on _DashState {
               itemBuilder: (ctx, i) {
                 final log = _auditLogs[i];
                 Color actionColor = const Color(0xffa1a1aa);
-                if (log.action == 'LOGIN')
+                if (log.action == 'LOGIN') {
                   actionColor = const Color(0xff22c55e);
-                if (log.action == 'LOGOUT')
+                } else if (log.action == 'LOGOUT') {
                   actionColor = const Color(0xff71717a);
-                if (log.action.startsWith('SERVER'))
+                } else if (log.action.startsWith('SERVER')) {
                   actionColor = const Color(0xffeab308);
-                if (log.action.startsWith('USER') ||
-                    log.action.startsWith('PLAYER'))
+                } else if (log.action.startsWith('USER') ||
+                    log.action.startsWith('PLAYER')) {
                   actionColor = const Color(0xffa855f7);
-                if (log.action.contains('INI') ||
-                    log.action.contains('SANDBOX'))
+                } else if (log.action.contains('INI') ||
+                    log.action.contains('SANDBOX')) {
                   actionColor = const Color(0xff38bdf8);
+                }
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(
@@ -359,7 +380,7 @@ extension DashUsersMixin on _DashState {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${log.username} â€¢ ${log.details}',
+                              '${log.username} - ${_auditDetailsInEnglish(log.details)}',
                               style: const TextStyle(
                                 fontSize: 12.5,
                                 color: Color(0xfff4f4f5),
