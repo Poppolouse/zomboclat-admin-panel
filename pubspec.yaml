@@ -59,7 +59,6 @@ flutter:
 
   assets:
     - assets/pz_traits/
-    - assets/pz_items/
     - assets/items_catalog.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
