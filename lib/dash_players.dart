@@ -300,6 +300,7 @@ extension DashPlayersMixin on _DashState {
     double size = 26,
     bool isMod = false,
     String? modName,
+    String? scriptIcon,
   }) {
     Widget assetFallback() => _defaultItemFallbackIcon(itemId, size: size);
     final raw = itemId.contains('.') ? itemId.split('.').last : itemId;
@@ -322,6 +323,16 @@ extension DashPlayersMixin on _DashState {
         );
       }
       return bundled;
+    }
+
+    // Bundled asset yoksa: script icon adından (Icon= / IconsForTexture=) VPS'ten çek
+    if (scriptIcon != null && scriptIcon.isNotEmpty) {
+      return RemoteItemIconImage(
+        iconName: scriptIcon,
+        itemId: itemId,
+        size: size,
+        fallback: assetFallback(),
+      );
     }
 
     final bundledRaw = Image.asset(

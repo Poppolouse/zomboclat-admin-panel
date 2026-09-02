@@ -11,6 +11,7 @@ class ItemDisplayNames {
   ItemDisplayNames._();
   static Map<String, String>? _map; // 'base.waterbottle' -> 'Water Bottle'
   static Map<String, String>? _reverse; // 'water bottle' -> 'base.waterbottle'
+  static Map<String, String>? _icons; // 'base.waterbottle' -> 'WaterBottle'
 
   static Future<void> load() async {
     if (_map != null) return;
@@ -35,7 +36,17 @@ class ItemDisplayNames {
       _map = {};
       _reverse = {};
     }
+    try {
+      final rawIcons = await rootBundle.loadString('assets/item_icons.json');
+      _icons = (jsonDecode(rawIcons) as Map<String, dynamic>)
+          .map((k, v) => MapEntry(k.toLowerCase(), v.toString()));
+    } catch (_) {
+      _icons = {};
+    }
   }
+
+  /// Script icon adi (Icon=/IconsForTexture=) - VPS /api/items/icon ile cekilir.
+  static String? scriptIcon(String itemId) => _icons?[itemId.toLowerCase()];
 
   /// Catalog name alanini oyun ici isimle degistirir (fallback: mevcut ad).
   static String displayName(String itemId, String fallbackName) {

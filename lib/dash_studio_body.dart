@@ -820,6 +820,11 @@ extension DashStudioBodyMixin on _DashState {
                                 size: 24,
                                 isMod: isMod,
                                 modName: modName?.toString(),
+                                scriptIcon:
+                                    (it['icon'] as String?) ??
+                                    ItemDisplayNames.scriptIcon(
+                                      iid.toString(),
+                                    ),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -961,6 +966,9 @@ extension DashStudioBodyMixin on _DashState {
                         size: 24,
                         isMod: isMod,
                         modName: modName?.toString(),
+                        scriptIcon:
+                            (it['icon'] as String?) ??
+                            ItemDisplayNames.scriptIcon(iid.toString()),
                       ),
                     ),
                     const SizedBox(width: 10),
