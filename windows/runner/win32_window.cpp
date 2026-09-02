@@ -216,6 +216,21 @@ Win32Window::MessageHandler(HWND hwnd,
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
       return 0;
+
+    case WM_GETICON: {
+      // Explicitly return the app icon for title bar / taskbar / alt-tab so
+      // Windows never falls back to a stale cached icon.
+      auto request_big = (wparam & ICON_BIG) != 0;
+      auto dpi = FlutterDesktopGetDpiForMonitor(
+          MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST));
+      auto cx = GetSystemMetricsForDpi(request_big ? SM_CXICON : SM_CXSMICON,
+                                       dpi);
+      auto handle = static_cast<HANDLE>(
+          LoadImage(GetModuleHandle(nullptr),
+                    MAKEINTRESOURCE(IDI_APP_ICON), IMAGE_ICON, cx, cx,
+                    LR_SHARED));
+      return reinterpret_cast<LRESULT>(handle);
+    }
   }
 
   return DefWindowProc(window_handle_, message, wparam, lparam);
