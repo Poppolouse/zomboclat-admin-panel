@@ -45,8 +45,16 @@ class ItemDisplayNames {
     }
   }
 
-  /// Script icon adi (Icon=/IconsForTexture=) - VPS /api/items/icon ile cekilir.
-  static String? scriptIcon(String itemId) => _icons?[itemId.toLowerCase()];
+  /// Script icon adi (Icon= / IconsForTexture=) - VPS `/api/items/icon` ile cekilir.
+  /// Evolving/mod itemleri Base.raw fallback ile de arar.
+  static String? scriptIcon(String itemId) {
+    final icons = _icons;
+    if (icons == null || icons.isEmpty) return null;
+    final hit = icons[itemId.toLowerCase()];
+    if (hit != null) return hit;
+    final raw = itemId.contains('.') ? itemId.split('.').last : itemId;
+    return icons['base.${raw.toLowerCase()}'];
+  }
 
   /// Catalog name alanini oyun ici isimle degistirir (fallback: mevcut ad).
   static String displayName(String itemId, String fallbackName) {
