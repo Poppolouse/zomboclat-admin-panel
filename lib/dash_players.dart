@@ -263,30 +263,59 @@ extension DashPlayersMixin on _DashState {
   }
 
   // GerÃ§ek Oyun EÅŸya Ä°konu (Authentic PZ Item PNG)
-  Widget _buildPzItemIcon(String? iconFile, String itemId, {double size = 26}) {
+  Widget _buildPzItemIcon(
+    String? iconFile,
+    String itemId, {
+    double size = 26,
+    bool isMod = false,
+    String? modName,
+  }) {
+    Widget assetFallback() => _defaultItemFallbackIcon(itemId, size: size);
+    final raw = itemId.contains('.') ? itemId.split('.').last : itemId;
+
     if (iconFile != null && iconFile.isNotEmpty) {
-      return Image.asset(
-        'assets/pz_items/$iconFile',
+      final bundled = Image.asset(
+        'assets/pz_items_base/$iconFile',
         width: size,
         height: size,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => _defaultItemFallbackIcon(itemId, size: size),
+        errorBuilder: (_, _, _) => assetFallback(),
       );
+      if (isMod) {
+        return ModIconImage(
+          modName: modName ?? '',
+          iconFile: iconFile,
+          itemId: itemId,
+          size: size,
+          fallback: bundled,
+        );
+      }
+      return bundled;
     }
-    final raw = itemId.contains('.') ? itemId.split('.').last : itemId;
-    return Image.asset(
-      'assets/pz_items/Item_$raw.png',
+
+    final bundledRaw = Image.asset(
+      'assets/pz_items_base/Item_$raw.png',
       width: size,
       height: size,
       fit: BoxFit.contain,
       errorBuilder: (_, _, _) => Image.asset(
-        'assets/pz_items/$raw.png',
+        'assets/pz_items_base/$raw.png',
         width: size,
         height: size,
         fit: BoxFit.contain,
-        errorBuilder: (_, _, _) => _defaultItemFallbackIcon(itemId, size: size),
+        errorBuilder: (_, _, _) => assetFallback(),
       ),
     );
+    if (isMod) {
+      return ModIconImage(
+        modName: modName ?? '',
+        iconFile: iconFile ?? '',
+        itemId: itemId,
+        size: size,
+        fallback: bundledRaw,
+      );
+    }
+    return bundledRaw;
   }
 
   Widget _defaultItemFallbackIcon(String itemId, {double size = 26}) {

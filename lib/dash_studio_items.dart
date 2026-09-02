@@ -281,6 +281,8 @@ extension DashStudioItemsMixin on _DashState {
                         iconFile,
                         iid.toString(),
                         size: 24,
+                        isMod: isMod,
+                        modName: modName?.toString(),
                       ),
                     ),
                     const SizedBox(width: 10),

@@ -25,5 +25,6 @@ part 'dash_sandbox.dart';
 part 'dash_users.dart';
 part 'dash_console.dart';
 part 'live_metric_chart.dart';
+part 'mod_icon_loader.dart';
 
 void main() => runApp(const App());
