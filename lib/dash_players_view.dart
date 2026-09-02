@@ -184,7 +184,50 @@ extension DashPlayersViewMixin on _DashState {
                   ),
                   const SizedBox(height: 14),
 
-                  if (filteredPlayers.isEmpty)
+                  if (_gamePlayersError.isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff7f1d1d).withValues(alpha: 0.35),
+                        border: Border.all(color: const Color(0xff991b1b)),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            color: Color(0xfff87171),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              _gamePlayersError,
+                              style: const TextStyle(
+                                color: Color(0xfffca5a5),
+                                fontSize: 12.5,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _fetchGamePlayers,
+                            icon: const Icon(
+                              Icons.refresh_rounded,
+                              size: 16,
+                              color: Color(0xfff87171),
+                            ),
+                            label: const Text(
+                              'Retry',
+                              style: TextStyle(color: Color(0xfff87171)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  if (filteredPlayers.isEmpty && _gamePlayersError.isEmpty)
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.all(30),
@@ -637,6 +680,38 @@ extension DashPlayersViewMixin on _DashState {
   // =============================================================
   // DEDICATED FULL-PAGE PLAYER & CHARACTER STUDIO (TAB 11 SUB-PAGE)
   // =============================================================
+  Widget _statChip(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withAlpha(80)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: 11,
+              color: color.withAlpha(180),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: color,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPlayerStudioView() {
     final p = _editingPlayer!;
     final hasSteamAvatar = p.steamAvatar != null && p.steamAvatar!.isNotEmpty;
@@ -948,6 +1023,36 @@ extension DashPlayersViewMixin on _DashState {
                                     ),
                                   ],
                                 ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: 8),
+                          _statChip(
+                            'Zombie Kills',
+                            '${p.zombieKills}',
+                            const Color(0xfff87171),
+                          ),
+                          const SizedBox(width: 6),
+                          _statChip(
+                            'Hours Survived',
+                            p.hoursSurvived.toStringAsFixed(1),
+                            const Color(0xff93c5fd),
+                          ),
+                          const SizedBox(width: 6),
+                          _statChip(
+                            'Weight',
+                            '${p.weight.toStringAsFixed(1)} kg',
+                            const Color(0xfffacc15),
+                          ),
+                          if (!p.blobParsed) ...[
+                            const SizedBox(width: 6),
+                            Tooltip(
+                              message:
+                                  'Save dosyası parse edilemedi; bazı alanlar eksik/varsayılan gösteriliyor.',
+                              child: _statChip(
+                                'DATA WARN',
+                                'partial',
+                                const Color(0xfffb923c),
                               ),
                             ),
                           ],

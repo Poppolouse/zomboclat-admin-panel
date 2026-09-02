@@ -90,6 +90,8 @@ class GamePlayer {
   final String profession;
   final List<String> traits;
   final Map<String, int> skills;
+  final Map<String, double> skillXp;
+  final bool blobParsed;
   final double hoursSurvived;
   final int zombieKills;
   final double weight;
@@ -100,6 +102,9 @@ class GamePlayer {
   final double fatigue;
   final double stress;
   final double boredom;
+  final double unhappiness;
+  final double pain;
+  final List<Map<String, dynamic>> bodyParts;
   final List<Map<String, dynamic>> inventory;
 
   GamePlayer({
@@ -121,6 +126,8 @@ class GamePlayer {
     this.profession = 'unemployed',
     this.traits = const [],
     this.skills = const {},
+    this.skillXp = const {},
+    this.blobParsed = false,
     this.hoursSurvived = 0.0,
     this.zombieKills = 0,
     this.weight = 80.0,
@@ -131,6 +138,9 @@ class GamePlayer {
     this.fatigue = 0.0,
     this.stress = 0.0,
     this.boredom = 0.0,
+    this.unhappiness = 0.0,
+    this.pain = 0.0,
+    this.bodyParts = const [],
     this.inventory = const [],
   });
 
@@ -166,6 +176,12 @@ class GamePlayer {
             (k, v) => MapEntry(k, (v is num) ? v.toInt() : 0),
           ) ??
           {},
+      skillXp:
+          (json['skill_xp'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(k, (v is num) ? v.toDouble() : 0.0),
+          ) ??
+          {},
+      blobParsed: json['blob_parsed'] == true,
       hoursSurvived: (json['hours_survived'] is num)
           ? (json['hours_survived'] as num).toDouble()
           : 0.0,
@@ -194,6 +210,14 @@ class GamePlayer {
       boredom: (json['boredom'] is num)
           ? (json['boredom'] as num).toDouble()
           : 0.0,
+      unhappiness: (json['unhappiness'] is num)
+          ? (json['unhappiness'] as num).toDouble()
+          : 0.0,
+      pain: (json['pain'] is num) ? (json['pain'] as num).toDouble() : 0.0,
+      bodyParts: (json['body_parts'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          [],
       inventory:
           (json['inventory'] as List<dynamic>?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))

@@ -178,11 +178,100 @@ extension DashStudioBodyMixin on _DashState {
                               : const Color(0xffef4444),
                           onChanged: (v) => setState(() => _pHealth = v),
                         ),
+                        Text(
+                          'Save dosyasından okunan 17 vücut bölgesi sağlığının ortalaması. '
+                          'Değişiklik "Heal" preseti veya RCON ile uygulanır.',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Color(0xff71717a),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+
+              // Gerçek vücut bölgesi sağlıkları (save dosyasından)
+              if (_editingPlayer!.bodyParts.isNotEmpty) ...[
+                const Divider(color: Color(0xff3f3f46)),
+                Text(
+                  'BODY PARTS (FROM SAVE FILE)',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xffa1a1aa),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _editingPlayer!.bodyParts.map((part) {
+                    final name = (part['name'] ?? '').toString();
+                    final hp = (part['health'] as num? ?? 100).toDouble();
+                    final bitten = part['bitten'] == true;
+                    final bleeding = part['bleeding'] == true;
+                    final infected = part['infected'] == true;
+                    final fractured = ((part['fracture'] as num? ?? 0)) > 0;
+                    final bandaged = part['bandaged'] == true;
+                    final status = bitten
+                        ? 'BITTEN'
+                        : fractured
+                        ? 'FRACTURE'
+                        : infected
+                        ? 'INFECTED'
+                        : bleeding
+                        ? 'BLEEDING'
+                        : hp >= 100
+                        ? 'OK'
+                        : hp > 50
+                        ? 'BRUISED'
+                        : 'WOUNDED';
+                    final color = bitten
+                        ? const Color(0xffef4444)
+                        : fractured
+                        ? const Color(0xfffb923c)
+                        : hp >= 100
+                        ? const Color(0xff4ade80)
+                        : hp > 50
+                        ? const Color(0xfffacc15)
+                        : const Color(0xfff87171);
+                    return Tooltip(
+                      message: '$name — $status${bandaged ? ' (bandaged)' : ''}',
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withAlpha(25),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: color.withAlpha(90)),
+                        ),
+                        child: Text(
+                          '$name ${hp.round()}%${bitten ? ' !' : ''}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: color,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Not: Vücut bölgesi sağlıkları save dosyasından salt-okunur okunur. '
+                  'Değiştirmek için "Full Heal" (RCON heal) kullanın.',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Color(0xff71717a),
+                  ),
+                ),
+              ],
               const SizedBox(height: 8),
 
               Row(
@@ -538,10 +627,27 @@ extension DashStudioBodyMixin on _DashState {
                   vertical: 10,
                 ),
               ),
-              onPressed: _fetchGamePlayers,
-              icon: const Icon(Icons.refresh_rounded, size: 16),
+              onPressed: _isRefreshingInventory
+                  ? null
+                  : () async {
+                      setState(() => _isRefreshingInventory = true);
+                      await _fetchGamePlayers();
+                      if (mounted) {
+                        setState(() => _isRefreshingInventory = false);
+                      }
+                    },
+              icon: _isRefreshingInventory
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.refresh_rounded, size: 16),
               label: Text(
-                'Refresh Inventory',
+                _isRefreshingInventory ? 'Refreshing...' : 'Refresh Inventory',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -552,7 +658,38 @@ extension DashStudioBodyMixin on _DashState {
         ),
         const SizedBox(height: 14),
 
-        if (filtered.isEmpty)
+        if (_gamePlayersError.isNotEmpty)
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xff7f1d1d).withValues(alpha: 0.35),
+              border: Border.all(color: const Color(0xff991b1b)),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Color(0xfff87171),
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Envanter verisi yenilenemedi: $_gamePlayersError',
+                    style: const TextStyle(
+                      color: Color(0xfffca5a5),
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        if (filtered.isEmpty && _gamePlayersError.isEmpty)
           Center(
             child: Padding(
               padding: const EdgeInsets.all(40),

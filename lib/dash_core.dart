@@ -54,6 +54,7 @@ class _DashState extends State<Dash> {
   final List<GamePlayer> _gamePlayers = [];
   final List<GameUserLog> _gameUserLogs = [];
   bool _isLoadingGamePlayers = false;
+  String _gamePlayersError = '';
   String _gamePlayerSearchQuery = '';
   int _gamePlayerSubTab = 0; // 0: Players, 1: Anti-Cheat Logs
 
@@ -83,11 +84,13 @@ class _DashState extends State<Dash> {
   // EÅŸya KataloÄŸu ve Envanter Arama
   List<Map<String, dynamic>> _catalogItems = [];
   bool _isLoadingCatalog = false;
+  String _catalogError = '';
   String _spawnerSearchQuery = '';
   String _spawnerSelectedCat = 'All';
   String _inventorySearchQuery = '';
   final TextEditingController _spawnerSearchCtrl = TextEditingController();
   final TextEditingController _inventorySearchCtrl = TextEditingController();
+  bool _isRefreshingInventory = false;
 
   int _pSelectedRoleId = 2;
   bool _pIsBanned = false;

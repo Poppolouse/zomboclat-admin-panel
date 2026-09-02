@@ -394,6 +394,9 @@ extension DashStudioCoreMixin on _DashState {
                         final sid = s.id;
                         final sname = s.name;
                         final lvl = _pSkills[sid] ?? 0;
+                        final savedXp = _editingPlayer?.skillXp[sid] ?? 0.0;
+                        final savedLvl = _editingPlayer?.skills[sid] ?? 0;
+                        final pending = lvl != savedLvl;
 
                         return Container(
                           width: itemWidth > 260
@@ -407,9 +410,11 @@ extension DashStudioCoreMixin on _DashState {
                             color: const Color(0xff27272a),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: lvl > 0
-                                  ? const Color(0xff3b82f6).withAlpha(120)
-                                  : const Color(0xff3f3f46),
+                              color: pending
+                                  ? const Color(0xfffacc15).withAlpha(160)
+                                  : (lvl > 0
+                                        ? const Color(0xff3b82f6).withAlpha(120)
+                                        : const Color(0xff3f3f46)),
                             ),
                           ),
                           child: Column(
@@ -494,6 +499,17 @@ extension DashStudioCoreMixin on _DashState {
                                 ],
                               ),
                               const SizedBox(height: 6),
+                              if (savedXp > 0)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Text(
+                                    'XP: ${savedXp.toStringAsFixed(1)}',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Color(0xff71717a),
+                                    ),
+                                  ),
+                                ),
                               Row(
                                 children: [
                                   InkWell(

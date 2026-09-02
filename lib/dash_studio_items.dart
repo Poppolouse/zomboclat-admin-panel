@@ -231,6 +231,34 @@ extension DashStudioItemsMixin on _DashState {
               child: CircularProgressIndicator(),
             ),
           )
+        else if (_catalogError.isNotEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(30),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: Color(0xfff87171),
+                    size: 28,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _catalogError,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Color(0xfffca5a5)),
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    onPressed: _loadCatalogFromBundle,
+                    icon: const Icon(Icons.refresh_rounded, size: 16),
+                    label: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          )
         else if (displayItems.isEmpty)
           Center(
             child: Padding(

@@ -2,7 +2,10 @@ part of 'main.dart';
 
 extension DashPlayersMixin on _DashState {
   Future<void> _fetchGamePlayers() async {
-    setState(() => _isLoadingGamePlayers = true);
+    setState(() {
+      _isLoadingGamePlayers = true;
+      _gamePlayersError = '';
+    });
     try {
       final jsonMap = await ApiClient.getPlayers();
       if (jsonMap['status'] == 'ok' && mounted) {
@@ -33,8 +36,19 @@ extension DashPlayersMixin on _DashState {
             }
           }
         });
+      } else if (mounted) {
+        setState(() {
+          _gamePlayersError =
+              jsonMap['message']?.toString() ??
+              'Sunucudan oyuncu verisi alınamadı (HTTP hatası).';
+        });
       }
-    } catch (_) {
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _gamePlayersError = 'Bağlantı hatası: API sunucusuna ulaşılamadı ($e)';
+        });
+      }
     } finally {
       if (mounted) setState(() => _isLoadingGamePlayers = false);
     }
@@ -210,7 +224,10 @@ extension DashPlayersMixin on _DashState {
   // EÅŸya KataloÄŸunu Bundle'dan YÃ¼kle (20,657 EÅŸya)
   Future<void> _loadCatalogFromBundle() async {
     if (_catalogItems.isNotEmpty) return;
-    setState(() => _isLoadingCatalog = true);
+    setState(() {
+      _isLoadingCatalog = true;
+      _catalogError = '';
+    });
     try {
       final jsonStr = await rootBundle.loadString('assets/items_catalog.json');
       final list = jsonDecode(jsonStr) as List;
@@ -222,8 +239,13 @@ extension DashPlayersMixin on _DashState {
           _isLoadingCatalog = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _isLoadingCatalog = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingCatalog = false;
+          _catalogError = 'Eşya kataloğu yüklenemedi: $e';
+        });
+      }
     }
   }
 
