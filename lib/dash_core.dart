@@ -15,19 +15,20 @@ class _DashState extends State<Dash> {
   final ram = <double>[];
   Timer? _metricsTimer;
 
-  // TAB SEÃ‡Ä°MÄ°:
+  // TAB SEÇİMİ:
   // 0: Panel
-  // 1: Sunucu INI AyarlarÄ±
-  // 2: SandboxVars AyarlarÄ±
-  // 3: Panel KullanÄ±cÄ±larÄ± (SQLite)
-  // 4: Panel Denetim LoglarÄ± (Audit)
-  // 5: Konsol - TÃ¼m Loglar
-  // 6: Sistem AyarlarÄ±
+  // 1: Sunucu INI Ayarları
+  // 2: SandboxVars Ayarları
+  // 3: Panel Kullanıcıları (SQLite)
+  // 4: Panel Denetim Logları (Audit)
+  // 5: Konsol - Tüm Loglar
+  // 6: Sistem Ayarları
   // 7: Mod & Workshop Galerisi
-  // 8: Mod SÄ±ralamasÄ± (Mod Order)
-  // 9: Konsol - Hatalar & UyarÄ±lar
+  // 8: Mod Sıralaması (Mod Order)
+  // 9: Konsol - Hatalar & Uyarılar
   // 10: Konsol - Hata Veren Modlar
-  // 11: Sunucu OyuncularÄ± (In-Game Players / Whitelist)
+  // 11: Sunucu Oyuncuları (In-Game Players / Whitelist)
+  // 12: Realtime God Actions (Hava & Dünya Olayları)
   int _selectedTab = 0;
 
   bool _isServerOnline = true;
@@ -38,19 +39,19 @@ class _DashState extends State<Dash> {
   String _serverUptime = '2 saat 28 dakika';
   String _serviceState = 'active';
 
-  // Sidebar Expand DurumlarÄ±
+  // Sidebar Expand Durumları
   bool _isConsoleGroupExpanded = true;
   bool _isModsGroupExpanded = true;
   bool _isSandboxGroupExpanded = true;
 
-  // SQLite Panel KullanÄ±cÄ± Listesi ve LoglarÄ±
+  // SQLite Panel Kullanıcı Listesi ve Logları
   final List<AppUser> _dbUsers = [];
   bool _isLoadingUsers = false;
 
   final List<AuditLog> _auditLogs = [];
   bool _isLoadingAuditLogs = false;
 
-  // In-Game Project Zomboid OyuncularÄ± (pzserver.db)
+  // In-Game Project Zomboid Oyuncuları (pzserver.db)
   final List<GamePlayer> _gamePlayers = [];
   final List<GameUserLog> _gameUserLogs = [];
   bool _isLoadingGamePlayers = false;
@@ -58,7 +59,7 @@ class _DashState extends State<Dash> {
   String _gamePlayerSearchQuery = '';
   int _gamePlayerSubTab = 0; // 0: Players, 1: Anti-Cheat Logs
 
-  // Oyuncu & Karakter StÃ¼dyosu (Dedicated Full-Page Editor)
+  // Oyuncu & Karakter Stüdyosu (Dedicated Full-Page Editor)
   GamePlayer? _editingPlayer;
   int _playerEditorSubTab = 0; // 0: General, 1: Skills, 2: Profession & Traits, 3: Health & Body, 4: Inventory, 5: Item Spawner, 6: Map & Teleport, 7: Live RCON
 
@@ -81,7 +82,7 @@ class _DashState extends State<Dash> {
   );
   final TextEditingController _pServerMsgCtrl = TextEditingController();
 
-  // EÅŸya KataloÄŸu ve Envanter Arama
+  // Eşya Kataloğu ve Envanter Arama
   List<Map<String, dynamic>> _catalogItems = [];
   bool _isLoadingCatalog = false;
   String _catalogError = '';
@@ -91,6 +92,9 @@ class _DashState extends State<Dash> {
   final TextEditingController _spawnerSearchCtrl = TextEditingController();
   final TextEditingController _inventorySearchCtrl = TextEditingController();
   bool _isRefreshingInventory = false;
+
+  // Envanterde acik olan konteynerler (container item id -> open)
+  final Set<String> _openInventoryContainers = {};
 
   int _pSelectedRoleId = 2;
   bool _pIsBanned = false;
@@ -111,6 +115,19 @@ class _DashState extends State<Dash> {
   final Map<String, int> _pSkills = {};
   bool _isSavingPlayerStudio = false;
 
+  // Realtime God Actions (Hava & Dunya Olaylari)
+  double _godRainIntensity = 50;
+  double _godStormHours = 4;
+  String _godSelectedTarget = 'random';
+  List<String> _godOnlinePlayers = [];
+  bool _isLoadingGodOnline = false;
+  String _godPresetActive = '';
+  int _godPresetRemaining = 0;
+  Timer? _godPresetTimer;
+  final TextEditingController _godHordeCtrl = TextEditingController(
+    text: '100',
+  );
+
   // Server Journal Logs & Stream
   final List<String> _serverLogs = [];
   bool _isLoadingServerLogs = false;
@@ -119,7 +136,7 @@ class _DashState extends State<Dash> {
   String _consoleSearchQuery = '';
   final ScrollController _consoleScrollController = ScrollController();
 
-  // INI & Mod AyarlarÄ±
+  // INI & Mod Ayarları
   final Map<String, String> _iniSettings = {};
   final Map<String, String> _iniComments = {};
   final List<String> _iniKeys = [];
@@ -133,7 +150,7 @@ class _DashState extends State<Dash> {
   String _modSearchQuery = '';
   String _modOrderSearchQuery = '';
 
-  // SandboxVars AyarlarÄ±
+  // SandboxVars Ayarları
   final Map<String, List<Map<String, dynamic>>> _sandboxCategories = {};
   final Map<String, Map<String, dynamic>> _sandboxCategoryMeta = {};
   String _selectedSandboxCategory = 'General';
@@ -161,7 +178,7 @@ class _DashState extends State<Dash> {
 
     _metricsTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
       _fetchRealServerMetrics();
-      // Konsol ekranlarÄ±ndan biri aÃ§Ä±ksa ve canlÄ± akÄ±ÅŸ aktifse arka planda loglarÄ± gÃ¼ncelle
+      // Konsol ekranlarından biri açıksa ve canlı akış aktifse arka planda logları güncelle
       if ((_selectedTab == 5 || _selectedTab == 9 || _selectedTab == 10) &&
           _isLiveConsoleStreaming &&
           !_isLoadingServerLogs) {
@@ -173,11 +190,12 @@ class _DashState extends State<Dash> {
   @override
   void dispose() {
     _metricsTimer?.cancel();
+    _godPresetTimer?.cancel();
     _consoleScrollController.dispose();
     super.dispose();
   }
 
-  // Sayfa DeÄŸiÅŸtirme ve Otomatik Veri Ã‡ekme (Auto-fetch)
+  // Sayfa Değiştirme ve Otomatik Veri Çekme (Auto-fetch)
   void _selectTab(int tabIndex, {String? category}) {
     setState(() {
       _selectedTab = tabIndex;
@@ -194,6 +212,8 @@ class _DashState extends State<Dash> {
       _fetchAuditLogs();
     } else if (tabIndex == 11) {
       _fetchGamePlayers();
+    } else if (tabIndex == 12) {
+      _fetchGodOnlinePlayers();
     } else if (tabIndex == 5 || tabIndex == 9 || tabIndex == 10) {
       _fetchServerLogs();
     }
@@ -202,5 +222,5 @@ class _DashState extends State<Dash> {
   @override
   Widget build(BuildContext context) => _buildLayout(context);
 
-  // In-Game Project Zomboid OyuncularÄ±nÄ± Ã‡ek (pzserver.db)
+  // In-Game Project Zomboid Oyuncularını Çek (pzserver.db)
 }

@@ -200,7 +200,7 @@ extension DashUsersMixin on _DashState {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'ID: ${u.id} â€¢ ${u.role}',
+                              'ID: ${u.id} • ${u.role}',
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: Color(0xff71717a),
@@ -260,7 +260,7 @@ extension DashUsersMixin on _DashState {
     );
   }
 
-  // TAB 4: PANEL DENETÄ°M & GÄ°RÄ°Åž-Ã‡IKIÅž LOGLARI (SQLITE AUDIT LOGS)
+  // TAB 4: PANEL DENETİM & GİRİŞ-ÇIKIŞ LOGLARI (SQLITE AUDIT LOGS)
   Widget _buildAuditLogsTab() {
     return Container(
       width: double.infinity,
@@ -408,5 +408,5 @@ extension DashUsersMixin on _DashState {
     );
   }
 
-  // TAB 5: KONSOL - TÃœM LOGLAR (CANLI STREAM)
+  // TAB 5: KONSOL - TÜM LOGLAR (CANLI STREAM)
 }

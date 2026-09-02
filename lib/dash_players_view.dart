@@ -99,7 +99,7 @@ extension DashPlayersViewMixin on _DashState {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Ä°statistik Rozetleri & Alt Sekmeler
+                // İstatistik Rozetleri & Alt Sekmeler
                 Row(
                   children: [
                     _badgeChip(
@@ -284,7 +284,7 @@ extension DashPlayersViewMixin on _DashState {
                               ),
                               child: Row(
                                 children: [
-                                  // Ã‡ift KatmanlÄ± Avatar (Steam Profil Resmi + Oyun Ä°Ã§i Survivor Tipi)
+                                  // Çift Katmanlı Avatar (Steam Profil Resmi + Oyun İçi Survivor Tipi)
                                   Stack(
                                     clipBehavior: Clip.none,
                                     children: [
@@ -326,7 +326,7 @@ extension DashPlayersViewMixin on _DashState {
                                                       )),
                                         ),
                                       ),
-                                      // CanlÄ± / Ã–lÃ¼ / Survivor Rozeti
+                                      // Canlı / Ölü / Survivor Rozeti
                                       Positioned(
                                         bottom: -2,
                                         right: -2,
@@ -356,7 +356,7 @@ extension DashPlayersViewMixin on _DashState {
                                   ),
                                   const SizedBox(width: 14),
 
-                                  // Oyun Ä°Ã§i Karakter ve KullanÄ±cÄ± DetaylarÄ±
+                                  // Oyun İçi Karakter ve Kullanıcı Detayları
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
@@ -442,7 +442,7 @@ extension DashPlayersViewMixin on _DashState {
                                                       BorderRadius.circular(4),
                                                 ),
                                                 child: Text(
-                                                  'ðŸ“ X: ${p.posX!.toStringAsFixed(0)}, Y: ${p.posY!.toStringAsFixed(0)} ${p.posZ != null && p.posZ! > 0 ? '(Z: ${p.posZ})' : ''}',
+                                                  '📍 X: ${p.posX!.toStringAsFixed(0)}, Y: ${p.posY!.toStringAsFixed(0)} ${p.posZ != null && p.posZ! > 0 ? '(Z: ${p.posZ})' : ''}',
                                                   style: const TextStyle(
                                                     fontSize: 10.5,
                                                     color: Color(0xff86efac),
@@ -493,7 +493,7 @@ extension DashPlayersViewMixin on _DashState {
                                     ),
                                   ),
 
-                                  // DÃ¼zenle & Ä°ÅŸlem ButonlarÄ±
+                                  // Düzenle & İşlem Butonları
                                   if (widget.user.isAdmin) ...[
                                     ElevatedButton.icon(
                                       style: ElevatedButton.styleFrom(
@@ -563,7 +563,7 @@ extension DashPlayersViewMixin on _DashState {
                       },
                     ),
                 ] else ...[
-                  // ANTI-CHEAT VE GÃœVENLÄ°K LOGLARI
+                  // ANTI-CHEAT VE GÜVENLİK LOGLARI
                   if (_gameUserLogs.isEmpty)
                     Center(
                       child: Padding(
@@ -635,7 +635,7 @@ extension DashPlayersViewMixin on _DashState {
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'â€¢ ${log.issuedBy} (${log.amount}x)',
+                                          '• ${log.issuedBy} (${log.amount}x)',
                                           style: const TextStyle(
                                             fontSize: 11,
                                             color: Color(0xffa1a1aa),
@@ -727,7 +727,7 @@ extension DashPlayersViewMixin on _DashState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Ãœst Navigasyon & Aksiyon Ã‡ubuÄŸu
+          // 1. Üst Navigasyon & Aksiyon Çubuğu
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Row(
@@ -771,7 +771,7 @@ extension DashPlayersViewMixin on _DashState {
                 ),
                 const Spacer(),
                 if (widget.user.isAdmin) ...[
-                  // HÄ±zlÄ± CanlandÄ±r & Ä°yileÅŸtir Butonu
+                  // Hızlı Canlandır & İyileştir Butonu
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: const Color(0xff4ade80),
@@ -851,7 +851,7 @@ extension DashPlayersViewMixin on _DashState {
           ),
           const Divider(color: Color(0xff3f3f46), height: 1),
 
-          // 2. Hero Oyuncu BaÅŸlÄ±k KartÄ±
+          // 2. Hero Oyuncu Başlık Kartı
           Container(
             padding: const EdgeInsets.all(16),
             color: const Color(0xff18181b),
@@ -949,7 +949,7 @@ extension DashPlayersViewMixin on _DashState {
                               p.steamPersona!.isNotEmpty) ...[
                             const SizedBox(width: 8),
                             Text(
-                              'â€¢ Steam: ${p.steamPersona}',
+                              '• Steam: ${p.steamPersona}',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: Color(0xffa1a1aa),
@@ -962,7 +962,7 @@ extension DashPlayersViewMixin on _DashState {
                       Row(
                         children: [
                           _badgeChip(
-                            _pIsDead ? 'DEAD ðŸ’€' : 'ALIVE ðŸŸ¢',
+                            _pIsDead ? 'DEAD 💀' : 'ALIVE 🟢',
                             _pIsDead
                                 ? const Color(0xffef4444)
                                 : const Color(0xff22c55e),
@@ -979,7 +979,7 @@ extension DashPlayersViewMixin on _DashState {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                'ðŸ“ X: ${_pPosXCtrl.text}, Y: ${_pPosYCtrl.text} (Kat ${_pPosZCtrl.text})',
+                                '📍 X: ${_pPosXCtrl.text}, Y: ${_pPosYCtrl.text} (Kat ${_pPosZCtrl.text})',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   color: Color(0xff86efac),
@@ -1066,7 +1066,7 @@ extension DashPlayersViewMixin on _DashState {
           ),
           const Divider(color: Color(0xff3f3f46), height: 1),
 
-          // 3. StÃ¼dyo Alt Sekme ButonlarÄ± (8 Kategori)
+          // 3. Stüdyo Alt Sekme Butonları (8 Kategori)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             color: const Color(0xff18181b),
@@ -1075,43 +1075,43 @@ extension DashPlayersViewMixin on _DashState {
               child: Row(
                 children: [
                   _subTabButton(
-                    title: 'ðŸ‘¤ General & Role',
+                    title: '👤 General & Role',
                     isSelected: _playerEditorSubTab == 0,
                     onTap: () => setState(() => _playerEditorSubTab = 0),
                   ),
                   _subTabButton(
-                    title: 'ðŸ“ˆ Skills & Levels',
+                    title: '📈 Skills & Levels',
                     isSelected: _playerEditorSubTab == 1,
                     onTap: () => setState(() => _playerEditorSubTab = 1),
                   ),
                   _subTabButton(
-                    title: 'ðŸŽ–ï¸ Profession & Traits',
+                    title: '🎖️ Profession & Traits',
                     isSelected: _playerEditorSubTab == 2,
                     onTap: () => setState(() => _playerEditorSubTab = 2),
                   ),
                   _subTabButton(
-                    title: 'ðŸ©¸ Health & Body',
+                    title: '🩸 Health & Body',
                     isSelected: _playerEditorSubTab == 3,
                     onTap: () => setState(() => _playerEditorSubTab = 3),
                   ),
                   _subTabButton(
                     title:
-                        '${'ðŸŽ’ Inventory'} (${_editingPlayer?.inventory.length ?? 0})',
+                        '${'🎒 Inventory'} (${_editingPlayer?.inventory.length ?? 0})',
                     isSelected: _playerEditorSubTab == 4,
                     onTap: () => setState(() => _playerEditorSubTab = 4),
                   ),
                   _subTabButton(
-                    title: 'ðŸ“¦ Item Spawner',
+                    title: '📦 Item Spawner',
                     isSelected: _playerEditorSubTab == 5,
                     onTap: () => setState(() => _playerEditorSubTab = 5),
                   ),
                   _subTabButton(
-                    title: 'ðŸ“ Map & Teleport',
+                    title: '📍 Map & Teleport',
                     isSelected: _playerEditorSubTab == 6,
                     onTap: () => setState(() => _playerEditorSubTab = 6),
                   ),
                   _subTabButton(
-                    title: 'âš¡ Live RCON',
+                    title: '⚡ Live RCON',
                     isSelected: _playerEditorSubTab == 7,
                     onTap: () => setState(() => _playerEditorSubTab = 7),
                   ),
@@ -1121,7 +1121,7 @@ extension DashPlayersViewMixin on _DashState {
           ),
           const Divider(color: Color(0xff3f3f46), height: 1),
 
-          // 4. StÃ¼dyo Ä°Ã§eriÄŸi
+          // 4. Stüdyo İçeriği
           Padding(
             padding: const EdgeInsets.all(16),
             child: _buildPlayerStudioTabContent(),
@@ -1131,5 +1131,5 @@ extension DashPlayersViewMixin on _DashState {
     );
   }
 
-  // StÃ¼dyo Alt Sekme Ä°Ã§erikleri
+  // Stüdyo Alt Sekme İçerikleri
 }

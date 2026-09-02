@@ -82,7 +82,7 @@ extension DashSandboxMixin on _DashState {
     );
   }
 
-  // TAB 2: SANDBOXVARS AYARLARI (LUA DÄ°NAMÄ°K KATEGORÄ°LER & SMART ALANLAR & YORUMLAR)
+  // TAB 2: SANDBOXVARS AYARLARI (LUA DİNAMİK KATEGORİLER & SMART ALANLAR & YORUMLAR)
   Widget _buildSandboxTab() {
     final meta = _getSandboxCategoryMeta(_selectedSandboxCategory);
     final displayName = meta['displayName'] as String;
@@ -108,7 +108,7 @@ extension DashSandboxMixin on _DashState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Ãœst BaÅŸlÄ±k & Kaydet Butonu
+          // Üst Başlık & Kaydet Butonu
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             child: Row(
@@ -247,7 +247,7 @@ extension DashSandboxMixin on _DashState {
           ),
           const Divider(color: Color(0xff3f3f46), height: 1),
 
-          // Arama Ã‡ubuÄŸu
+          // Arama Çubuğu
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             child: TextField(
@@ -284,7 +284,7 @@ extension DashSandboxMixin on _DashState {
           ),
           const Divider(color: Color(0xff333338), height: 1),
 
-          // Kategori DeÄŸiÅŸkenleri
+          // Kategori Değişkenleri
           if (_isLoadingSandbox)
             const Center(
               child: Padding(

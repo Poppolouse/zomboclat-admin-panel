@@ -24,7 +24,7 @@ extension DashConsoleMixin on _DashState {
           ),
           const Divider(color: Color(0xff27272a), height: 1),
 
-          // Arama Ã‡ubuÄŸu
+          // Arama Çubuğu
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
@@ -61,7 +61,7 @@ extension DashConsoleMixin on _DashState {
           ),
           const Divider(color: Color(0xff27272a), height: 1),
 
-          // Terminal AkÄ±ÅŸÄ±
+          // Terminal Akışı
           Container(
             height: 520,
             padding: const EdgeInsets.all(12),
@@ -147,7 +147,7 @@ extension DashConsoleMixin on _DashState {
           ),
           const Divider(color: Color(0xff27272a), height: 1),
 
-          // Arama Ã‡ubuÄŸu
+          // Arama Çubuğu
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: TextField(
@@ -533,7 +533,7 @@ extension DashConsoleMixin on _DashState {
           ),
           const Spacer(),
 
-          // CanlÄ± AkÄ±ÅŸ GÃ¶stergesi
+          // Canlı Akış Göstergesi
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(

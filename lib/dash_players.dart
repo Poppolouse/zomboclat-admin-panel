@@ -221,7 +221,7 @@ extension DashPlayersMixin on _DashState {
     }
   }
 
-  // EÅŸya KataloÄŸunu Bundle'dan YÃ¼kle (20,657 EÅŸya)
+  // Eşya Kataloğunu Bundle'dan Yükle (20,657 Eşya)
   Future<void> _loadCatalogFromBundle() async {
     if (_catalogItems.isNotEmpty) return;
     setState(() {
@@ -229,12 +229,21 @@ extension DashPlayersMixin on _DashState {
       _catalogError = '';
     });
     try {
+      await ItemDisplayNames.load();
       final jsonStr = await rootBundle.loadString('assets/items_catalog.json');
       final list = jsonDecode(jsonStr) as List;
       if (mounted) {
         setState(() {
           _catalogItems = list
-              .map((e) => Map<String, dynamic>.from(e as Map))
+              .map((e) {
+                final m = Map<String, dynamic>.from(e as Map);
+                final id = (m['id'] ?? '').toString();
+                m['display'] = ItemDisplayNames.displayName(
+                  id,
+                  (m['name'] ?? '').toString(),
+                );
+                return m;
+              })
               .toList();
           _isLoadingCatalog = false;
         });
@@ -249,7 +258,7 @@ extension DashPlayersMixin on _DashState {
     }
   }
 
-  // GerÃ§ek Oyun Trait Ä°konu (Authentic PZ PNG)
+  // Gerçek Oyun Trait İkonu (Authentic PZ PNG)
   Widget _buildPzTraitIcon(String traitId, {double size = 22}) {
     final cleanId = traitId
         .toLowerCase()
@@ -284,7 +293,7 @@ extension DashPlayersMixin on _DashState {
     );
   }
 
-  // GerÃ§ek Oyun EÅŸya Ä°konu (Authentic PZ Item PNG)
+  // Gerçek Oyun Eşya İkonu (Authentic PZ Item PNG)
   Widget _buildPzItemIcon(
     String? iconFile,
     String itemId, {
@@ -405,7 +414,7 @@ extension DashPlayersMixin on _DashState {
     return Icon(icon, size: size * 0.8, color: color);
   }
 
-  // Oyuncu StÃ¼dyosu Verilerini Kaydet
+  // Oyuncu Stüdyosu Verilerini Kaydet
   Future<void> _savePlayerStudio() async {
     if (_editingPlayer == null || !widget.user.isAdmin) return;
     if (_isSavingPlayerStudio) return;
@@ -692,5 +701,5 @@ extension DashPlayersMixin on _DashState {
     );
   }
 
-  // CanlÄ± Metrikleri Ã‡ek
+  // Canlı Metrikleri Çek
 }

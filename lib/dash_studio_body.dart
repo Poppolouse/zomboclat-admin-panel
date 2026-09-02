@@ -5,7 +5,7 @@ extension DashStudioBodyMixin on _DashState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // HÄ±zlÄ± Presetler
+        // Hızlı Presetler
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -113,7 +113,7 @@ extension DashStudioBodyMixin on _DashState {
         ),
         const SizedBox(height: 16),
 
-        // Genel SaÄŸlÄ±k ve Beden Durumu
+        // Genel Sağlık ve Beden Durumu
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -331,7 +331,7 @@ extension DashStudioBodyMixin on _DashState {
         ),
         const SizedBox(height: 16),
 
-        // Ä°htiyaÃ§lar ve Psikolojik Durumlar
+        // İhtiyaçlar ve Psikolojik Durumlar
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -370,7 +370,7 @@ extension DashStudioBodyMixin on _DashState {
                             ),
                             const Spacer(),
                             Text(
-                              '%${_pHunger.round()} â€¢ ${_pHunger == 0
+                              '%${_pHunger.round()} • ${_pHunger == 0
                                   ? 'Full'
                                   : _pHunger < 40
                                   ? 'Peckish'
@@ -414,7 +414,7 @@ extension DashStudioBodyMixin on _DashState {
                             ),
                             const Spacer(),
                             Text(
-                              '%${_pThirst.round()} â€¢ ${_pThirst == 0
+                              '%${_pThirst.round()} • ${_pThirst == 0
                                   ? 'Hydrated'
                                   : _pThirst < 40
                                   ? 'Slightly Thirsty'
@@ -459,7 +459,7 @@ extension DashStudioBodyMixin on _DashState {
                             ),
                             const Spacer(),
                             Text(
-                              '%${_pFatigue.round()} â€¢ ${_pFatigue == 0
+                              '%${_pFatigue.round()} • ${_pFatigue == 0
                                   ? 'Rested'
                                   : _pFatigue < 60
                                   ? 'Tired'
@@ -501,7 +501,7 @@ extension DashStudioBodyMixin on _DashState {
                             ),
                             const Spacer(),
                             Text(
-                              '%${_pStress.round()} â€¢ ${_pStress == 0
+                              '%${_pStress.round()} • ${_pStress == 0
                                   ? 'Calm'
                                   : _pStress < 50
                                   ? 'Agitated'
@@ -543,7 +543,7 @@ extension DashStudioBodyMixin on _DashState {
                             ),
                             const Spacer(),
                             Text(
-                              '%${_pBoredom.round()} â€¢ ${_pBoredom == 0 ? 'Happy' : 'Bored'}',
+                              '%${_pBoredom.round()} • ${_pBoredom == 0 ? 'Happy' : 'Bored'}',
                               style: TextStyle(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.bold,
@@ -579,17 +579,58 @@ extension DashStudioBodyMixin on _DashState {
     final invList = _editingPlayer?.inventory ?? [];
     final q = _inventorySearchQuery.toLowerCase().trim();
 
-    final filtered = invList.where((it) {
+    bool matchEntry(Map<String, dynamic> it) {
       if (q.isEmpty) return true;
       final name = (it['name'] ?? '').toString().toLowerCase();
+      final raw = (it['raw_name'] ?? it['id'] ?? '').toString().toLowerCase();
       final id = (it['id'] ?? '').toString().toLowerCase();
-      return name.contains(q) || id.contains(q);
-    }).toList();
+      return name.contains(q) || id.contains(q) || raw.contains(q);
+    }
+
+    // Konteynerler arama sonucuna gore acilir/kapanir; normal listeleme:
+    // konteyner kapali -> sadece baslik satiri; acik -> baslik + cocuklar.
+    List<Map<String, dynamic>> buildVisible() {
+      final out = <Map<String, dynamic>>[];
+      for (final it in invList) {
+        final isContainer = it['is_container'] == true;
+        final children =
+            (it['children'] as List<dynamic>? ?? [])
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+        if (q.isNotEmpty) {
+          // Arama modunda: eslesen her seyi duz listeye akit (konteyner eslesirse cocuklariyla)
+          if (isContainer) {
+            final self = matchEntry(it);
+            final kids = children.where(matchEntry).toList();
+            if (self || kids.isNotEmpty) {
+              out.add({...it, 'children': kids, '_forceOpen': true});
+            }
+          } else {
+            if (matchEntry(it)) out.add(it);
+          }
+          continue;
+        }
+        if (isContainer) {
+          final cid = it['id'].toString();
+          out.add(it);
+          if (_openInventoryContainers.contains(cid)) {
+            for (final k in children) {
+              out.add({...k, '_child_of': cid});
+            }
+          }
+        } else {
+          out.add(it);
+        }
+      }
+      return out;
+    }
+
+    final filtered = buildVisible();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Arama ve BaÅŸlÄ±k
+        // Arama ve Başlık
         Row(
           children: [
             Expanded(
@@ -709,23 +750,200 @@ extension DashStudioBodyMixin on _DashState {
             separatorBuilder: (_, _) => const SizedBox(height: 4),
             itemBuilder: (ctx, i) {
               final it = filtered[i];
-              final iname = it['name'] ?? 'Unknown Item';
-              final iid = it['id'] ?? '';
+              final rawName = (it['name'] ?? 'Unknown Item').toString();
+              final iid = (it['id'] ?? '').toString();
+              final iname = ItemDisplayNames.displayName(
+                iid,
+                rawName,
+              );
               final count = it['count'] ?? 1;
               final cat = it['cat'] ?? 'Genel';
               final isMod = it['is_mod'] == true;
               final modName = it['mod_name'];
               final iconFile = it['icon_file'];
+              final isChild = it.containsKey('_child_of');
+              final isContainer = it['is_container'] == true;
+              final children =
+                  (it['children'] as List<dynamic>? ?? [])
+                      .map((e) => Map<String, dynamic>.from(e as Map))
+                      .toList();
+              final resolved = iid.toString().isNotEmpty;
+              final cid = iid.toString();
+              final isOpen =
+                  it['_forceOpen'] == true ||
+                  _openInventoryContainers.contains(cid);
+
+              // Konteyner satiri: butun satir tiklanabilir, acilinca cocuklari listelenir
+              if (isContainer && !isChild) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xff1e1e21),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isOpen
+                          ? const Color(0xff3b82f6).withAlpha(140)
+                          : const Color(0xff3f3f46),
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: () {
+                        setState(() {
+                          if (isOpen) {
+                            _openInventoryContainers.remove(cid);
+                          } else {
+                            _openInventoryContainers.add(cid);
+                          }
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: const Color(0xff27272a),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: _buildPzItemIcon(
+                                iconFile,
+                                iid.toString(),
+                                size: 24,
+                                isMod: isMod,
+                                modName: modName?.toString(),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            AnimatedRotation(
+                              turns: isOpen ? 0.25 : 0,
+                              duration: const Duration(milliseconds: 150),
+                              child: const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: Color(0xff71717a),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          iname.toString(),
+                                          style: const TextStyle(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xfff4f4f5),
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 5,
+                                          vertical: 1,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(
+                                            0xffeab308,
+                                          ).withAlpha(40),
+                                          borderRadius: BorderRadius.circular(
+                                            3,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${children.length} items',
+                                          style: const TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xfffde047),
+                                          ),
+                                        ),
+                                      ),
+                                      if (isMod) ...[
+                                        const SizedBox(width: 6),
+                                        Tooltip(
+                                          message:
+                                              'Mod: ${modName ?? "Custom Mod"}',
+                                          child: Container(
+                                            padding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 4,
+                                                  vertical: 1,
+                                                ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xff7c3aed)
+                                                  .withAlpha(40),
+                                              borderRadius:
+                                                  BorderRadius.circular(3),
+                                            ),
+                                            child: const Text(
+                                              'MOD',
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xffc4b5fd),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    '$iid • $cat',
+                                    style: const TextStyle(
+                                      fontSize: 10.5,
+                                      color: Color(0xff71717a),
+                                      fontFamily: 'monospace',
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
 
               return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                padding: EdgeInsets.only(
+                  left: isChild ? 34 : 10,
+                  right: 10,
+                  top: 6,
+                  bottom: 6,
                 ),
+                margin: isChild
+                    ? const EdgeInsets.only(left: 6, bottom: 2)
+                    : const EdgeInsets.only(bottom: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xff18181b),
+                  color: isChild
+                      ? const Color(0xff141416)
+                      : const Color(0xff18181b),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xff3f3f46)),
+                  border: Border.all(
+                    color: isChild
+                        ? const Color(0xff27272a)
+                        : const Color(0xff3f3f46),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -765,24 +983,53 @@ extension DashStudioBodyMixin on _DashState {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 5,
-                                  vertical: 1,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xff2563eb).withAlpha(40),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: Text(
-                                  'x$count',
-                                  style: const TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xff93c5fd),
+                              if ((count ?? 1) > 1 || !isChild)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                    vertical: 1,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xff2563eb).withAlpha(
+                                      40,
+                                    ),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                  child: Text(
+                                    'x$count',
+                                    style: const TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xff93c5fd),
+                                    ),
                                   ),
                                 ),
-                              ),
+                              if (isChild && !resolved) ...[
+                                const SizedBox(width: 6),
+                                Tooltip(
+                                  message:
+                                      'Bu eşya kayıttan birebir çözümlenemedi (ID bilinmiyor)',
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xff71717a)
+                                          .withAlpha(40),
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                    child: const Text(
+                                      '?',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xffa1a1aa),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                               if (isMod) ...[
                                 const SizedBox(width: 6),
                                 Tooltip(
@@ -812,7 +1059,7 @@ extension DashStudioBodyMixin on _DashState {
                           ),
                           const SizedBox(height: 1),
                           Text(
-                            '$iid â€¢ $cat',
+                            resolved ? '$iid • $cat' : '$cat',
                             style: const TextStyle(
                               fontSize: 10.5,
                               color: Color(0xff71717a),
@@ -824,88 +1071,90 @@ extension DashStudioBodyMixin on _DashState {
                       ),
                     ),
 
-                    // Aksiyonlar: +1 Ekle, +5 Ekle, Envanterden Ã‡Ä±kar
-                    InkWell(
-                      onTap: () => _quickGiveItem(iid.toString(), 1),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xff2563eb),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          '+1',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                    // Aksiyonlar: +1 Ekle, +5 Ekle, Envanterden Çıkar
+                    if (resolved) ...[
+                      InkWell(
+                        onTap: () => _quickGiveItem(iid.toString(), 1),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 4,
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    InkWell(
-                      onTap: () => _quickGiveItem(iid.toString(), 5),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xff1e3a8a),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          '+5',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                          decoration: BoxDecoration(
+                            color: const Color(0xff2563eb),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    InkWell(
-                      onTap: () {
-                        _quickSendRcon(
-                          'removeitem "$uname" "${iid.toString()}"',
-                          '$iname ($iid) silindi.',
-                        );
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xff991b1b),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.delete_outline_rounded,
-                              size: 13,
+                          child: const Text(
+                            '+1',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
-                            SizedBox(width: 2),
-                            Text(
-                              'Delete',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 5),
+                      InkWell(
+                        onTap: () => _quickGiveItem(iid.toString(), 5),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xff1e3a8a),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            '+5',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      InkWell(
+                        onTap: () {
+                          _quickSendRcon(
+                            'removeitem "$uname" "${iid.toString()}"',
+                            '$iname ($iid) silindi.',
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xff991b1b),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.delete_outline_rounded,
+                                size: 13,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 2),
+                              Text(
+                                'Delete',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               );
@@ -915,5 +1164,5 @@ extension DashStudioBodyMixin on _DashState {
     );
   }
 
-  // Sekme 5: EÅŸya Verme (Item Spawner - 20,657 EÅŸya KataloÄŸu - Kompakt Liste Modu)
+  // Sekme 5: Eşya Verme (Item Spawner - 20,657 Eşya Kataloğu - Kompakt Liste Modu)
 }

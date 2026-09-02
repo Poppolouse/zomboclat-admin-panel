@@ -29,7 +29,9 @@ extension DashStudioItemsMixin on _DashState {
         }
       }
       if (q.isNotEmpty) {
-        final iname = (it['name'] ?? '').toString().toLowerCase();
+        final iname = ((it['display'] ?? it['name']) ?? '')
+            .toString()
+            .toLowerCase();
         final iid = (it['id'] ?? '').toString().toLowerCase();
         final modN = (it['mod_name'] ?? '').toString().toLowerCase();
         return iname.contains(q) || iid.contains(q) || modN.contains(q);
@@ -42,7 +44,7 @@ extension DashStudioItemsMixin on _DashState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Ã–zel ID ile EÅŸya Verme Ã‡ubuÄŸu
+        // Özel ID ile Eşya Verme Çubuğu
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -124,7 +126,7 @@ extension DashStudioItemsMixin on _DashState {
         ),
         const SizedBox(height: 14),
 
-        // Kategori Filtre ButonlarÄ±
+        // Kategori Filtre Butonları
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -159,7 +161,7 @@ extension DashStudioItemsMixin on _DashState {
         ),
         const SizedBox(height: 10),
 
-        // Arama ve SonuÃ§ SayacÄ±
+        // Arama ve Sonuç Sayacı
         Row(
           children: [
             Expanded(
@@ -223,7 +225,7 @@ extension DashStudioItemsMixin on _DashState {
         ),
         const SizedBox(height: 12),
 
-        // EÅŸya Kompakt YÃ¼ksek YoÄŸunluklu Liste (High-Density Compact List)
+        // Eşya Kompakt Yüksek Yoğunluklu Liste (High-Density Compact List)
         if (_isLoadingCatalog)
           const Center(
             child: Padding(
@@ -277,7 +279,8 @@ extension DashStudioItemsMixin on _DashState {
             separatorBuilder: (_, _) => const SizedBox(height: 3),
             itemBuilder: (ctx, i) {
               final itm = displayItems[i];
-              final iname = itm['name'] ?? 'Item';
+              final iname =
+                  (itm['display'] ?? itm['name']) ?? 'Item';
               final iid = itm['id'] ?? '';
               final cat = itm['cat'] ?? 'Genel';
               final isMod = itm['is_mod'] == true;
@@ -296,7 +299,7 @@ extension DashStudioItemsMixin on _DashState {
                 ),
                 child: Row(
                   children: [
-                    // Oyun Ä°Ã§i GerÃ§ek EÅŸya Ä°konu
+                    // Oyun İçi Gerçek Eşya İkonu
                     Container(
                       width: 32,
                       height: 32,
@@ -315,7 +318,7 @@ extension DashStudioItemsMixin on _DashState {
                     ),
                     const SizedBox(width: 10),
 
-                    // Ä°sim & ID
+                    // İsim & ID
                     Expanded(
                       flex: 3,
                       child: Column(
@@ -395,7 +398,7 @@ extension DashStudioItemsMixin on _DashState {
                     ),
                     const SizedBox(width: 10),
 
-                    // HÄ±zlÄ± Verme ButonlarÄ±: +1, +5, +20
+                    // Hızlı Verme Butonları: +1, +5, +20
                     InkWell(
                       onTap: () => _quickGiveItem(iid.toString(), 1),
                       child: Container(
@@ -509,7 +512,7 @@ extension DashStudioItemsMixin on _DashState {
     );
   }
 
-  // Sekme 6: Harita & IÅŸÄ±nlanma
+  // Sekme 6: Harita & Işınlanma
   Widget _buildStudioTeleportTab() {
     final uname = _editingPlayer!.username;
 
@@ -690,5 +693,5 @@ extension DashStudioItemsMixin on _DashState {
     );
   }
 
-  // Sekme 7: CanlÄ± RCON KomutlarÄ±
+  // Sekme 7: Canlı RCON Komutları
 }

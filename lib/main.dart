@@ -24,6 +24,8 @@ part 'dash_mods.dart';
 part 'dash_sandbox.dart';
 part 'dash_users.dart';
 part 'dash_console.dart';
+part 'dash_god_actions.dart';
+part 'item_display_names.dart';
 part 'live_metric_chart.dart';
 part 'mod_icon_loader.dart';
 

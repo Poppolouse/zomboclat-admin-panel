@@ -156,31 +156,31 @@ extension DashStudioCoreMixin on _DashState {
                     items: const [
                       DropdownMenuItem(
                         value: 7,
-                        child: Text('Admin (ðŸ‘‘ Full Administrator)'),
+                        child: Text('Admin (👑 Full Administrator)'),
                       ),
                       DropdownMenuItem(
                         value: 6,
-                        child: Text('Moderator (ðŸ›¡ï¸ Moderator)'),
+                        child: Text('Moderator (🛡️ Moderator)'),
                       ),
                       DropdownMenuItem(
                         value: 5,
-                        child: Text('GM (ðŸŽ® Game Master / Items & Teleport)'),
+                        child: Text('GM (🎮 Game Master / Items & Teleport)'),
                       ),
                       DropdownMenuItem(
                         value: 4,
-                        child: Text('Observer (ðŸ‘ï¸ Spectator / GodMode)'),
+                        child: Text('Observer (👁️ Spectator / GodMode)'),
                       ),
                       DropdownMenuItem(
                         value: 3,
-                        child: Text('Priority (â­ Priority Whitelist)'),
+                        child: Text('Priority (⭐ Priority Whitelist)'),
                       ),
                       DropdownMenuItem(
                         value: 2,
-                        child: Text('User (ðŸ‘¤ Standard Player)'),
+                        child: Text('User (👤 Standard Player)'),
                       ),
                       DropdownMenuItem(
                         value: 1,
-                        child: Text('Banned (ðŸš« Banned)'),
+                        child: Text('Banned (🚫 Banned)'),
                       ),
                     ],
                     onChanged: (val) {
@@ -202,8 +202,8 @@ extension DashStudioCoreMixin on _DashState {
                           contentPadding: EdgeInsets.zero,
                           title: Text(
                             _pIsBanned
-                                ? 'Banned from Server ðŸš«'
-                                : 'Not Banned ðŸ›¡ï¸',
+                                ? 'Banned from Server 🚫'
+                                : 'Not Banned 🛡️',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -271,7 +271,7 @@ extension DashStudioCoreMixin on _DashState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Ãœst AraÃ§ Ã‡ubuÄŸu
+        // Üst Araç Çubuğu
         Row(
           children: [
             Text(
@@ -345,7 +345,7 @@ extension DashStudioCoreMixin on _DashState {
         ),
         const SizedBox(height: 14),
 
-        // Kategori BazlÄ± Beceri Listesi
+        // Kategori Bazlı Beceri Listesi
         ...categories.map((cat) {
           final catSkills = _allPzSkills.where((s) => s.cat == cat).toList();
           if (catSkills.isEmpty) return const SizedBox();
@@ -589,7 +589,7 @@ extension DashStudioCoreMixin on _DashState {
     );
   }
 
-  // Sekme 2: Meslek & Traitler (3 SÃ¼tun, Tek Dil, GerÃ§ek Oyun Ä°konlarÄ± & Mod Bilgisi)
+  // Sekme 2: Meslek & Traitler (3 Sütun, Tek Dil, Gerçek Oyun İkonları & Mod Bilgisi)
   Widget _buildStudioProfessionTraitsTab() {
     final curProf = _allPzProfessions.firstWhere(
       (p) => p['id'] == _pSelectedProfession,
@@ -600,7 +600,7 @@ extension DashStudioCoreMixin on _DashState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Meslek SeÃ§imi
+        // Meslek Seçimi
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -637,7 +637,7 @@ extension DashStudioCoreMixin on _DashState {
                   final desc = prof['desc'] ?? '';
                   return DropdownMenuItem(
                     value: prof['id'],
-                    child: Text('$title â€” $desc'),
+                    child: Text('$title — $desc'),
                   );
                 }).toList(),
                 onChanged: (val) {
@@ -654,7 +654,7 @@ extension DashStudioCoreMixin on _DashState {
         ),
         const SizedBox(height: 16),
 
-        // Pozitif Traitler (3 SÃ¼tunlu Grid Layout & GerÃ§ek Oyun Ä°konlarÄ±)
+        // Pozitif Traitler (3 Sütunlu Grid Layout & Gerçek Oyun İkonları)
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -815,7 +815,7 @@ extension DashStudioCoreMixin on _DashState {
         ),
         const SizedBox(height: 16),
 
-        // Negatif Traitler (3 SÃ¼tunlu Grid Layout & GerÃ§ek Oyun Ä°konlarÄ±)
+        // Negatif Traitler (3 Sütunlu Grid Layout & Gerçek Oyun İkonları)
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -978,5 +978,5 @@ extension DashStudioCoreMixin on _DashState {
     );
   }
 
-  // Sekme 3: SaÄŸlÄ±k, Beden & Ä°statistikler
+  // Sekme 3: Sağlık, Beden & İstatistikler
 }

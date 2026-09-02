@@ -8,7 +8,7 @@ extension DashSupportMixin on _DashState {
     return null;
   }
 
-  // Sandbox Kategori BaÅŸlÄ±ÄŸÄ± ve Mod EÅŸleÅŸtirici
+  // Sandbox Kategori Başlığı ve Mod Eşleştirici
   Map<String, dynamic> _getSandboxCategoryMeta(String catKey) {
     if (_sandboxCategoryMeta.containsKey(catKey)) {
       final m = _sandboxCategoryMeta[catKey]!;
@@ -81,7 +81,7 @@ extension DashSupportMixin on _DashState {
     };
   }
 
-  // Mod SÄ±rasÄ± Konumu DeÄŸiÅŸtir
+  // Mod Sırası Konumu Değiştir
   void _moveModToPosition(int currentIndex, int targetIndex) {
     if (targetIndex < 0) targetIndex = 0;
     if (targetIndex >= _iniMods.length) targetIndex = _iniMods.length - 1;
@@ -93,7 +93,7 @@ extension DashSupportMixin on _DashState {
     });
   }
 
-  // Loglardaki Mod HatalarÄ±nÄ± Ã‡Ä±kar
+  // Loglardaki Mod Hatalarını Çıkar
   List<ModErrorGroup> _extractModErrors() {
     final Map<String, List<String>> modErrors = {};
 
@@ -113,7 +113,7 @@ extension DashSupportMixin on _DashState {
 
       String? matchedModId;
 
-      // 1. Mod ID eÅŸleÅŸmesi
+      // 1. Mod ID eşleşmesi
       for (final modId in _iniMods) {
         if (modId.length >= 3 && lower.contains(modId.toLowerCase())) {
           matchedModId = modId;
@@ -121,7 +121,7 @@ extension DashSupportMixin on _DashState {
         }
       }
 
-      // 2. Workshop ID eÅŸleÅŸmesi
+      // 2. Workshop ID eşleşmesi
       if (matchedModId == null) {
         for (final wid in _iniWorkshopItems) {
           if (line.contains(wid)) {
@@ -154,7 +154,7 @@ extension DashSupportMixin on _DashState {
     }).toList();
   }
 
-  // Mod & Workshop JSON Ã‡Ä±ktÄ± Penceresi
+  // Mod & Workshop JSON Çıktı Penceresi
   void _showModJsonExportDialog() {
     final Map<String, dynamic> exportData = {
       'server': 'Zomboclat Project Zomboid Dedicated',

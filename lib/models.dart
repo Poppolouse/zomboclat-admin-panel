@@ -307,7 +307,7 @@ const List<PzSkillInfo> _allPzSkills = [
     cat: 'Passive',
     icon: Icons.sports_mma_rounded,
   ),
-  // Ã‡eviklik
+  // Çeviklik
   PzSkillInfo(
     id: 'Sprinting',
     name: 'Sprinting',
@@ -332,7 +332,7 @@ const List<PzSkillInfo> _allPzSkills = [
     cat: 'Agility',
     icon: Icons.visibility_off_rounded,
   ),
-  // YakÄ±n DÃ¶vÃ¼ÅŸ
+  // Yakın Dövüş
   PzSkillInfo(
     id: 'Axe',
     name: 'Axe',
@@ -375,7 +375,7 @@ const List<PzSkillInfo> _allPzSkills = [
     cat: 'Combat',
     icon: Icons.build_rounded,
   ),
-  // AteÅŸli Silahlar
+  // Ateşli Silahlar
   PzSkillInfo(
     id: 'Aiming',
     name: 'Aiming',

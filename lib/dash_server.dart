@@ -338,7 +338,7 @@ extension DashServerMixin on _DashState {
     }
   }
 
-  // Yeni Panel KullanÄ±cÄ±sÄ± Ekle (Admin)
+  // Yeni Panel Kullanıcısı Ekle (Admin)
   Future<void> _addUserDialog() async {
     final nameCtrl = TextEditingController();
     String selectedRole = 'OPERATOR';
@@ -678,5 +678,5 @@ extension DashServerMixin on _DashState {
     );
   }
 
-  // Mod Metadata EÅŸleÅŸtirici
+  // Mod Metadata Eşleştirici
 }

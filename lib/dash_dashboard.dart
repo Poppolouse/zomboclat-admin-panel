@@ -42,8 +42,8 @@ extension DashDashboardMixin on _DashState {
               else
                 Text(
                   _isServerOnline
-                      ? 'SERVER ACTIVE (pzserver.service â€¢ $_serviceState)'
-                      : 'SERVER STOPPED (pzserver.service â€¢ $_serviceState)',
+                      ? 'SERVER ACTIVE (pzserver.service • $_serviceState)'
+                      : 'SERVER STOPPED (pzserver.service • $_serviceState)',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 12.5,
@@ -66,7 +66,7 @@ extension DashDashboardMixin on _DashState {
         ),
         const SizedBox(height: 14),
 
-        // SUNUCU KONTROLLERÄ° (SERVER CONTROLS)
+        // SUNUCU KONTROLLERİ (SERVER CONTROLS)
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -104,7 +104,7 @@ extension DashDashboardMixin on _DashState {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'pzserver.service â€¢ Systemd Manager',
+                    'pzserver.service • Systemd Manager',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xffa1a1aa),
@@ -246,7 +246,7 @@ extension DashDashboardMixin on _DashState {
         ),
         const SizedBox(height: 14),
 
-        // CanlÄ± Metrik Grafikleri
+        // Canlı Metrik Grafikleri
         Row(
           children: [
             LiveMetricChart(
@@ -273,14 +273,14 @@ extension DashDashboardMixin on _DashState {
             const Icon(Icons.info_outline, size: 13, color: Color(0xff71717a)),
             const SizedBox(width: 6),
             Text(
-              'Live SSH stream â€¢ 1.5s rate â€¢ Last 40s history (Hover over charts to inspect values)',
+              'Live SSH stream • 1.5s rate • Last 40s history (Hover over charts to inspect values)',
               style: const TextStyle(color: Color(0xff71717a), fontSize: 11.5),
             ),
           ],
         ),
         const SizedBox(height: 18),
 
-        // Sunucu Sistem Ã–zellikleri Paneli
+        // Sunucu Sistem Özellikleri Paneli
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -340,7 +340,7 @@ extension DashDashboardMixin on _DashState {
                                 _specRow(
                                   'OS',
                                   'Ubuntu 24.04.4 LTS',
-                                  'Noble Numbat â€¢ x86_64',
+                                  'Noble Numbat • x86_64',
                                 ),
                                 const SizedBox(height: 10),
                                 _specRow(
@@ -370,19 +370,19 @@ extension DashDashboardMixin on _DashState {
                                 _specRow(
                                   'STORAGE',
                                   '160 GB NVMe SSD',
-                                  'PCIe 4.0 â€¢ Ext4',
+                                  'PCIe 4.0 • Ext4',
                                 ),
                                 const SizedBox(height: 10),
                                 _specRow(
                                   'NETWORK',
-                                  '1.0 Gbps â€¢ Europe (Berlin)',
+                                  '1.0 Gbps • Europe (Berlin)',
                                   'Ping ~24ms',
                                 ),
                                 const SizedBox(height: 10),
                                 _specRow(
                                   'BUILD',
                                   'Project Zomboid v42.20.4',
-                                  'pzserver.service â€¢ 32 Slots',
+                                  'pzserver.service • 32 Slots',
                                 ),
                               ],
                             ),
@@ -395,7 +395,7 @@ extension DashDashboardMixin on _DashState {
                           _specRow(
                             'OS',
                             'Ubuntu 24.04.4 LTS',
-                            'Noble Numbat â€¢ x86_64',
+                            'Noble Numbat • x86_64',
                           ),
                           const SizedBox(height: 8),
                           _specRow(
@@ -413,19 +413,19 @@ extension DashDashboardMixin on _DashState {
                           _specRow(
                             'STORAGE',
                             '160 GB NVMe SSD',
-                            'PCIe 4.0 â€¢ Ext4',
+                            'PCIe 4.0 • Ext4',
                           ),
                           const SizedBox(height: 8),
                           _specRow(
                             'NETWORK',
-                            '1.0 Gbps â€¢ Europe (Berlin)',
+                            '1.0 Gbps • Europe (Berlin)',
                             'Ping ~24ms',
                           ),
                           const SizedBox(height: 8),
                           _specRow(
                             'BUILD',
                             'Project Zomboid v42.20.4',
-                            'pzserver.service â€¢ 32 Slots',
+                            'pzserver.service • 32 Slots',
                           ),
                         ],
                       );

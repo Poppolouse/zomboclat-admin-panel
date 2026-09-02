@@ -5,7 +5,7 @@ extension DashLayoutMixin on _DashState {
     return Scaffold(
       body: Row(
         children: [
-          // Sol MenÃ¼ (Modern Ã–zel Sidebar - TÃ¼m Tab GeÃ§iÅŸleri Buradan)
+          // Sol Menü (Modern Özel Sidebar - Tüm Tab Geçişleri Buradan)
           _buildCustomSidebar(),
 
           // Ana Panel
@@ -15,7 +15,7 @@ extension DashLayoutMixin on _DashState {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Ãœst BaÅŸlÄ±k & Dil SeÃ§ici
+                  // Üst Başlık & Dil Seçici
                   Row(
                     children: [
                       Expanded(
@@ -32,7 +32,7 @@ extension DashLayoutMixin on _DashState {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Project Zomboid v42.20.4 â€¢ SQLite Central Auth',
+                              'Project Zomboid v42.20.4 • SQLite Central Auth',
                               style: const TextStyle(
                                 color: Color(0xffa1a1aa),
                                 fontSize: 12,
@@ -69,6 +69,8 @@ extension DashLayoutMixin on _DashState {
                     _buildModGalleryTab(),
                   ] else if (_selectedTab == 8) ...[
                     _buildModOrderTab(),
+                  ] else if (_selectedTab == 12) ...[
+                    _buildGodActionsTab(),
                   ],
                 ],
               ),
@@ -305,7 +307,7 @@ extension DashLayoutMixin on _DashState {
     );
   }
 
-  // Ã–ZEL SOL SIDEBAR WIDGET'I (BÃ–LÃœMLER, SUNUCU OYUNCULARI, EXPANDABLE KONSOL, HOVER & AUTO-FETCH)
+  // ÖZEL SOL SIDEBAR WIDGET'I (BÖLÜMLER, SUNUCU OYUNCULARI, EXPANDABLE KONSOL, HOVER & AUTO-FETCH)
   Widget _buildCustomSidebar() {
     final cats = _sandboxCategories.keys.toList();
     final modErrorsCount = _extractModErrors().length;
@@ -395,12 +397,12 @@ extension DashLayoutMixin on _DashState {
           ),
           const Divider(color: Color(0xff27272a), height: 1),
 
-          // MenÃ¼ Ã–ÄŸeleri (BÃ¶lÃ¼mlere AyrÄ±lmÄ±ÅŸ)
+          // Menü Öğeleri (Bölümlere Ayrılmış)
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               children: [
-                // BÃ–LÃœM 1: CANLI ADMÄ°N YÃ–NETÄ°MÄ° & LOGLAR
+                // BÖLÜM 1: CANLI ADMİN YÖNETİMİ & LOGLAR
                 _sidebarSectionHeader('LIVE ADMIN & LOGS'),
                 _navItem(
                   index: 0,
@@ -408,7 +410,7 @@ extension DashLayoutMixin on _DashState {
                   icon: Icons.dashboard_rounded,
                 ),
 
-                // KONSOL LOGLARI (EXPANDABLE KATEGORÄ°)
+                // KONSOL LOGLARI (EXPANDABLE KATEGORİ)
                 _expandableGroup(
                   title: 'Console & Logs',
                   icon: Icons.terminal_rounded,
@@ -451,7 +453,7 @@ extension DashLayoutMixin on _DashState {
                 ),
                 _sidebarDivider(),
 
-                // BÃ–LÃœM 2: ZOMBOID SUNUCUSU
+                // BÖLÜM 2: ZOMBOID SUNUCUSU
                 _sidebarSectionHeader('ZOMBOID SERVER'),
                 _navItem(
                   index: 1,
@@ -463,8 +465,13 @@ extension DashLayoutMixin on _DashState {
                   title: '${'Players'} (${_gamePlayers.length})',
                   icon: Icons.sports_esports_rounded,
                 ),
+                _navItem(
+                  index: 12,
+                  title: 'Realtime God Actions',
+                  icon: Icons.bolt_rounded,
+                ),
 
-                // DÄ°NAMÄ°K SANDBOXVARS KATEGORÄ°LERÄ°
+                // DİNAMİK SANDBOXVARS KATEGORİLERİ
                 _expandableGroup(
                   title: 'SandboxVars',
                   icon: Icons.view_in_ar_rounded,
@@ -499,7 +506,7 @@ extension DashLayoutMixin on _DashState {
                 ),
                 _sidebarDivider(),
 
-                // BÃ–LÃœM 3: MOD YÃ–NETÄ°MÄ°
+                // BÖLÜM 3: MOD YÖNETİMİ
                 _sidebarSectionHeader('MOD MANAGEMENT'),
                 _expandableGroup(
                   title: 'Mods & Load Order',
@@ -531,7 +538,7 @@ extension DashLayoutMixin on _DashState {
                 ),
                 _sidebarDivider(),
 
-                // BÃ–LÃœM 4: VPS & PANEL YÃ–NETÄ°MÄ°
+                // BÖLÜM 4: VPS & PANEL YÖNETİMİ
                 _sidebarSectionHeader('VPS & PANEL AUTH'),
                 _navItem(
                   index: 3,

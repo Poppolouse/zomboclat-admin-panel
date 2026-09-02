@@ -1,5 +1,5 @@
 #define MyAppName "Zomboclat Admin Panel"
-#define MyAppVersion "1.0.7"
+#define MyAppVersion "1.0.8"
 #define MyAppPublisher "Zomboclat"
 #define MyAppExeName "zomboclat_admin_panel.exe"
 
@@ -15,6 +15,8 @@ OutputBaseFilename=Zomboclat-Admin-Panel-Setup
 Compression=lzma
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64
+SetupIconFile=windows\runner\resources\app_icon.ico
+UninstallDisplayIcon={app}\zomboclat_admin_panel.exe
 
 [Files]
 Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion

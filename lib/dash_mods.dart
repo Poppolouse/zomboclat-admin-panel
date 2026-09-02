@@ -101,7 +101,7 @@ extension DashModsMixin on _DashState {
               ),
               const SizedBox(height: 16),
 
-              // Sunucu Ä°Ã§i Mesaj GÃ¶nder
+              // Sunucu İçi Mesaj Gönder
               Text(
                 'SEND LIVE SERVER BROADCAST',
                 style: const TextStyle(
@@ -160,7 +160,7 @@ extension DashModsMixin on _DashState {
     );
   }
 
-  // TAB 7: MOD & WORKSHOP GALERÄ°SÄ°
+  // TAB 7: MOD & WORKSHOP GALERİSİ
   Widget _buildModGalleryTab() {
     return Container(
       width: double.infinity,
@@ -329,7 +329,7 @@ extension DashModsMixin on _DashState {
                 ),
                 const SizedBox(height: 16),
 
-                // MOD KARTLARI (STEAM WORKSHOP FOTOÄžRAFLI KARTLAR)
+                // MOD KARTLARI (STEAM WORKSHOP FOTOGRAFLI KARTLAR)
                 Text(
                   'STEAM WORKSHOP ITEMS & THUMBNAILS',
                   style: const TextStyle(
@@ -457,7 +457,7 @@ extension DashModsMixin on _DashState {
                                         children: [
                                           if (subs > 0)
                                             Text(
-                                              'â­ ${(subs / 1000).toStringAsFixed(0)}k',
+                                              '⭐ ${(subs / 1000).toStringAsFixed(0)}k',
                                               style: const TextStyle(
                                                 fontSize: 10.5,
                                                 color: Color(0xfffacc15),
@@ -518,7 +518,7 @@ extension DashModsMixin on _DashState {
     );
   }
 
-  // TAB 8: MOD YÃœKLEME SIRALAMASI (MOD LOAD ORDER)
+  // TAB 8: MOD YÜKLEME SIRALAMASI (MOD LOAD ORDER)
   Widget _buildModOrderTab() {
     return Container(
       width: double.infinity,
@@ -770,7 +770,7 @@ extension DashModsMixin on _DashState {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // SÃ¼rÃ¼kleme TutamacÄ± (Ã–zel DragStartListener)
+                            // Sürükleme Tutamacı (Özel DragStartListener)
                             ReorderableDragStartListener(
                               index: i,
                               child: MouseRegion(
@@ -790,7 +790,7 @@ extension DashModsMixin on _DashState {
                             ),
                             const SizedBox(width: 4),
 
-                            // SÄ±ra NumarasÄ± Ã‡ipi & SayÄ± DeÄŸiÅŸtirme Butonu
+                            // Sıra Numarası Çipi & Sayı Değiştirme Butonu
                             InkWell(
                               borderRadius: BorderRadius.circular(4),
                               onTap: () => _showJumpToPositionDialog(i, modId),
@@ -830,7 +830,7 @@ extension DashModsMixin on _DashState {
                             ),
                             const SizedBox(width: 10),
 
-                            // Mod GÃ¶rseli
+                            // Mod Görseli
                             ClipRRect(
                               borderRadius: BorderRadius.circular(4),
                               child: Container(
@@ -861,7 +861,7 @@ extension DashModsMixin on _DashState {
                             ),
                             const SizedBox(width: 12),
 
-                            // Mod BaÅŸlÄ±ÄŸÄ±, ID ve AÃ§Ä±klama
+                            // Mod Başlığı, ID ve Açıklama
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -919,7 +919,7 @@ extension DashModsMixin on _DashState {
                                       if (subs > 0) ...[
                                         const SizedBox(width: 6),
                                         Text(
-                                          'â­ ${(subs / 1000).toStringAsFixed(0)}k',
+                                          '⭐ ${(subs / 1000).toStringAsFixed(0)}k',
                                           style: const TextStyle(
                                             fontSize: 10.5,
                                             color: Color(0xfffacc15),
@@ -947,7 +947,7 @@ extension DashModsMixin on _DashState {
                             ),
                             const SizedBox(width: 10),
 
-                            // Ä°ÅŸlem ButonlarÄ± (Tamamen AyrÄ±k ve Net)
+                            // İşlem Butonları (Tamamen Ayrık ve Net)
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
