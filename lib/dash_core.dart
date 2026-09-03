@@ -39,10 +39,10 @@ class _DashState extends State<Dash> {
   String _serverUptime = '2 saat 28 dakika';
   String _serviceState = 'active';
 
-  // Sidebar Expand Durumları
-  bool _isConsoleGroupExpanded = true;
-  bool _isModsGroupExpanded = true;
-  bool _isSandboxGroupExpanded = true;
+  // Sidebar Expand Durumları (start collapsed)
+  bool _isConsoleGroupExpanded = false;
+  bool _isModsGroupExpanded = false;
+  bool _isSandboxGroupExpanded = false;
 
   // SQLite Panel Kullanıcı Listesi ve Logları
   final List<AppUser> _dbUsers = [];

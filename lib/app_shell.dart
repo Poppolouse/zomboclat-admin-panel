@@ -92,11 +92,56 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  static const _storage = FlutterSecureStorage();
+  static const _keyRemember = 'remember_me';
+  static const _keyUsername = 'remembered_username';
+  static const _keyPassword = 'remembered_password';
+
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _rememberMe = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedCredentials();
+  }
+
+  Future<void> _loadRememberedCredentials() async {
+    try {
+      final remember = await _storage.read(key: _keyRemember);
+      final username = await _storage.read(key: _keyUsername);
+      final password = await _storage.read(key: _keyPassword);
+      if (!mounted) return;
+      setState(() {
+        _rememberMe = remember == 'true';
+        if (_rememberMe) {
+          _usernameController.text = username ?? '';
+          _passwordController.text = password ?? '';
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _persistRememberedCredentials(
+    String username,
+    String password,
+  ) async {
+    try {
+      if (_rememberMe) {
+        await _storage.write(key: _keyRemember, value: 'true');
+        await _storage.write(key: _keyUsername, value: username);
+        await _storage.write(key: _keyPassword, value: password);
+      } else {
+        await _storage.delete(key: _keyRemember);
+        await _storage.delete(key: _keyUsername);
+        await _storage.delete(key: _keyPassword);
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -125,6 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final appUser = await ApiClient.login(username, password);
       if (appUser != null) {
+        await _persistRememberedCredentials(username, password);
         widget.onLoginSuccess(appUser);
         return;
       } else {
@@ -379,6 +425,37 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 14),
+                SizedBox(
+                  height: 26,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: Checkbox(
+                          value: _rememberMe,
+                          activeColor: const Color(0xff2563eb),
+                          side: const BorderSide(color: Color(0xff3f3f46)),
+                          onChanged: (val) =>
+                              setState(() => _rememberMe = val ?? false),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () =>
+                            setState(() => _rememberMe = !_rememberMe),
+                        child: const Text(
+                          'Remember me (keeps you signed in on this PC)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xffa1a1aa),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 22),
                 SizedBox(
                   width: double.infinity,
