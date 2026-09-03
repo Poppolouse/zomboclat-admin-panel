@@ -338,8 +338,9 @@ extension DashServerMixin on _DashState {
     }
   }
 
-  // Yeni Panel Kullanıcısı Ekle (Admin)
+  // Yeni Panel Kullanıcısı Ekle (Sadece id=1 root admin)
   Future<void> _addUserDialog() async {
+    if (widget.user.id != 1) return;
     final nameCtrl = TextEditingController();
     final passCtrl = TextEditingController();
     String selectedRole = 'OPERATOR';
@@ -543,8 +544,9 @@ extension DashServerMixin on _DashState {
     );
   }
 
-  // Panel Kullanicisi Sil (Admin)
+  // Panel Kullanicisi Sil (Sadece id=1 root admin)
   void _deleteUser(String username) async {
+    if (widget.user.id != 1) return;
     final sm = ScaffoldMessenger.of(context);
     final confirm = await showDialog<bool>(
       context: context,
@@ -604,10 +606,313 @@ extension DashServerMixin on _DashState {
       sm.showSnackBar(
         SnackBar(
           backgroundColor: const Color(0xff991b1b),
-          content: Text('Hata: $e'),
+          content: Text('Error: $e'),
         ),
       );
     }
+  }
+
+  // Sifre Degistir: id=1 herkes icin, digerleri sadece kendi sifresi (eski sifre dogrulamali)
+  Future<void> _changePasswordDialog(AppUser targetUser) async {
+    final isSelf =
+        widget.user.username.toLowerCase() ==
+        targetUser.username.toLowerCase();
+    final isRoot = widget.user.id == 1;
+    final canEdit = isSelf || isRoot;
+
+    if (!canEdit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Color(0xff991b1b),
+          content: Text(
+            'Read-only. Only the root administrator (id 1) can manage other users.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final oldCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    bool obscureOld = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
+    await showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xff27272a),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: Color(0xff3f3f46)),
+          ),
+          title: Text(
+            isSelf ? 'Change My Password' : 'Change Password: ${targetUser.username}',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'CURRENT PASSWORD',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xffa1a1aa),
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: oldCtrl,
+                obscureText: obscureOld,
+                enabled: true,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xfff4f4f5),
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: const Color(0xff18181b),
+                  hintText: isSelf
+                      ? 'Enter your current password'
+                      : (isRoot
+                          ? 'Not required for root admin'
+                          : 'Required'),
+                  hintStyle: const TextStyle(
+                    color: Color(0xff71717a),
+                    fontSize: 12,
+                  ),
+                  suffixIcon: IconButton(
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      obscureOld
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 16,
+                      color: const Color(0xffa1a1aa),
+                    ),
+                    onPressed: () =>
+                        setDialogState(() => obscureOld = !obscureOld),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                  ),
+                ),
+              ),
+              if (isSelf || (isRoot && targetUser.id == 1))
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    'Required: verify your current password first.',
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      color: Color(0xff71717a),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 14),
+              Text(
+                'NEW PASSWORD',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xffa1a1aa),
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: newCtrl,
+                obscureText: obscureNew,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xfff4f4f5),
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: const Color(0xff18181b),
+                  hintText: 'Enter new password',
+                  hintStyle: const TextStyle(
+                    color: Color(0xff71717a),
+                    fontSize: 12,
+                  ),
+                  suffixIcon: IconButton(
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      obscureNew
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 16,
+                      color: const Color(0xffa1a1aa),
+                    ),
+                    onPressed: () =>
+                        setDialogState(() => obscureNew = !obscureNew),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'CONFIRM NEW PASSWORD',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xffa1a1aa),
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: confirmCtrl,
+                obscureText: obscureConfirm,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Color(0xfff4f4f5),
+                ),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: const Color(0xff18181b),
+                  hintText: 'Repeat new password',
+                  hintStyle: const TextStyle(
+                    color: Color(0xff71717a),
+                    fontSize: 12,
+                  ),
+                  suffixIcon: IconButton(
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      obscureConfirm
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 16,
+                      color: const Color(0xffa1a1aa),
+                    ),
+                    onPressed: () => setDialogState(
+                      () => obscureConfirm = !obscureConfirm,
+                    ),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: Text(
+                'Cancel',
+                style: const TextStyle(color: Color(0xffa1a1aa)),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xff2563eb),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              onPressed: () async {
+                final sm = ScaffoldMessenger.of(context);
+                final newPwd = newCtrl.text;
+                if (newPwd.isEmpty) {
+                  sm.showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Color(0xff991b1b),
+                      content: Text('New password is required.'),
+                    ),
+                  );
+                  return;
+                }
+                if (newPwd != confirmCtrl.text) {
+                  sm.showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Color(0xff991b1b),
+                      content: Text('Passwords do not match.'),
+                    ),
+                  );
+                  return;
+                }
+                final needsOld =
+                    isSelf || (isRoot && targetUser.id == 1);
+                if (needsOld && oldCtrl.text.isEmpty) {
+                  sm.showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Color(0xff991b1b),
+                      content: Text('Current password is required.'),
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(dialogCtx);
+                try {
+                  final jsonMap = await ApiClient.changePanelUserPassword(
+                    username: targetUser.username,
+                    newPassword: newPwd,
+                    byUser: widget.user.username,
+                    oldPassword: oldCtrl.text,
+                  );
+                  if (jsonMap['status'] == 'ok') {
+                    _fetchDbUsers();
+                    _fetchAuditLogs();
+                    sm.showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xff15803d),
+                        content: Text(
+                          'Password for "${targetUser.username}" updated successfully.',
+                        ),
+                      ),
+                    );
+                  } else {
+                    sm.showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xff991b1b),
+                        content: Text(
+                          jsonMap['message']?.toString() ?? 'Error',
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  sm.showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xff991b1b),
+                      content: Text('Error: $e'),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Update Password'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // Sunucu Komutu Calistir & Logla

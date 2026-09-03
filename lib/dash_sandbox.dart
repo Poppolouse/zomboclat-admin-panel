@@ -166,7 +166,7 @@ extension DashSandboxMixin on _DashState {
                             border: Border.all(color: const Color(0xff3f3f46)),
                           ),
                           child: Text(
-                            'Tablo: $_selectedSandboxCategory',
+                            'Table: $_selectedSandboxCategory',
                             style: const TextStyle(
                               fontSize: 10.5,
                               color: Color(0xff93c5fd),

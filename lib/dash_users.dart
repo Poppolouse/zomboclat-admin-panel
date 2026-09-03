@@ -1,25 +1,7 @@
 part of 'main.dart';
 
 extension DashUsersMixin on _DashState {
-  String _auditDetailsInEnglish(String details) {
-    return details
-        .replaceAll(
-          'pzserver.service restart calistirildi',
-          'pzserver.service restart executed',
-        )
-        .replaceAll(
-          'pzserver.service start calistirildi',
-          'pzserver.service start executed',
-        )
-        .replaceAll(
-          'pzserver.service stop calistirildi',
-          'pzserver.service stop executed',
-        )
-        .replaceAll(
-          'Sunucu komutu uygulandi ancak islem gunluge yazilamadi.',
-          'Server command succeeded but could not be written to the audit log.',
-        );
-  }
+  bool get _isRootAdmin => widget.user.id == 1;
 
   Widget _badgeChip(String label, Color color) {
     return Container(
@@ -87,7 +69,7 @@ extension DashUsersMixin on _DashState {
                       ),
                 onPressed: _isLoadingUsers ? null : _fetchDbUsers,
               ),
-              if (widget.user.isAdmin) ...[
+              if (_isRootAdmin) ...[
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -237,7 +219,7 @@ extension DashUsersMixin on _DashState {
                           ),
                         ),
                       ),
-                      if (widget.user.isAdmin &&
+                      if (_isRootAdmin &&
                           u.username.toLowerCase() != 'poppolouse') ...[
                         const SizedBox(width: 10),
                         IconButton(
@@ -250,6 +232,24 @@ extension DashUsersMixin on _DashState {
                           onPressed: () => _deleteUser(u.username),
                         ),
                       ],
+                      const SizedBox(width: 10),
+                      IconButton(
+                        tooltip: isCurrent
+                            ? 'Change My Password'
+                            : (_isRootAdmin
+                                  ? 'Change Password'
+                                  : 'View (read-only)'),
+                        icon: Icon(
+                          isCurrent
+                              ? Icons.password_rounded
+                              : Icons.visibility_outlined,
+                          size: 16,
+                          color: isCurrent
+                              ? const Color(0xff60a5fa)
+                              : const Color(0xffa1a1aa),
+                        ),
+                        onPressed: () => _changePasswordDialog(u),
+                      ),
                     ],
                   ),
                 );
@@ -380,7 +380,7 @@ extension DashUsersMixin on _DashState {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${log.username} - ${_auditDetailsInEnglish(log.details)}',
+                              '${log.username} - ${log.details}',
                               style: const TextStyle(
                                 fontSize: 12.5,
                                 color: Color(0xfff4f4f5),

@@ -241,6 +241,20 @@ class ApiClient {
     });
   }
 
+  static Future<Map<String, dynamic>> changePanelUserPassword({
+    required String username,
+    required String newPassword,
+    required String byUser,
+    String oldPassword = '',
+  }) async {
+    return await _post('/api/users/password', {
+      'username': username,
+      'new_password': newPassword,
+      'by_user': byUser,
+      'old_password': oldPassword,
+    });
+  }
+
   // Audit Logs
   static Future<List<AuditLog>> getAuditLogs() async {
     final res = await _get('/api/audit-logs');
