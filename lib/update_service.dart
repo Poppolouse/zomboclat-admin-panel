@@ -1,6 +1,6 @@
 part of 'main.dart';
 
-const _appVersion = '1.0.11';
+const _appVersion = '1.0.12';
 const _releaseApi =
     'https://api.github.com/repos/Poppolouse/zomboclat-admin-panel/releases/latest';
 const _installerName = 'Zomboclat-Admin-Panel-Setup.exe';

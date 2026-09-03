@@ -341,6 +341,7 @@ extension DashServerMixin on _DashState {
   // Yeni Panel Kullanıcısı Ekle (Admin)
   Future<void> _addUserDialog() async {
     final nameCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
     String selectedRole = 'OPERATOR';
 
     await showDialog(
@@ -377,6 +378,39 @@ extension DashServerMixin on _DashState {
                   filled: true,
                   fillColor: const Color(0xff18181b),
                   hintText: 'e.g. Ahmet',
+                  hintStyle: const TextStyle(
+                    color: Color(0xff71717a),
+                    fontSize: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'PASSWORD',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xffa1a1aa),
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: passCtrl,
+                obscureText: true,
+                style: const TextStyle(fontSize: 13, color: Color(0xfff4f4f5)),
+                decoration: InputDecoration(
+                  isDense: true,
+                  filled: true,
+                  fillColor: const Color(0xff18181b),
+                  hintText: 'Login password for this user',
                   hintStyle: const TextStyle(
                     color: Color(0xff71717a),
                     fontSize: 12,
@@ -452,7 +486,17 @@ extension DashServerMixin on _DashState {
               ),
               onPressed: () async {
                 final uname = nameCtrl.text.trim();
+                final pwd = passCtrl.text;
                 if (uname.isEmpty) return;
+                if (pwd.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xff991b1b),
+                      content: Text('Password is required.'),
+                    ),
+                  );
+                  return;
+                }
                 Navigator.pop(ctx);
 
                 final sm = ScaffoldMessenger.of(context);
@@ -461,6 +505,7 @@ extension DashServerMixin on _DashState {
                     username: uname,
                     role: selectedRole,
                     byUser: widget.user.username,
+                    password: pwd,
                   );
                   if (jsonMap['status'] == 'ok') {
                     _fetchDbUsers();

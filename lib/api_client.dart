@@ -57,8 +57,11 @@ class ApiClient {
   }
 
   // Auth
-  static Future<AppUser?> login(String username) async {
-    final res = await _post('/api/auth/login', {'username': username});
+  static Future<AppUser?> login(String username, String password) async {
+    final res = await _post('/api/auth/login', {
+      'username': username,
+      'password': password,
+    });
     if (res['status'] == 'ok' && res['user'] != null) {
       return AppUser.fromJson(res['user'] as Map<String, dynamic>);
     }
@@ -218,11 +221,13 @@ class ApiClient {
     required String username,
     required String role,
     required String byUser,
+    String password = '',
   }) async {
     return await _post('/api/users/add', {
       'username': username,
       'role': role,
       'by_user': byUser,
+      'password': password,
     });
   }
 

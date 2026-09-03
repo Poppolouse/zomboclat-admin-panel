@@ -93,19 +93,27 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void dispose() {
     _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
   void _handleLogin() async {
     final username = _usernameController.text.trim();
+    final password = _passwordController.text;
     if (username.isEmpty) {
       setState(() => _errorMessage = 'Please enter your username.');
+      return;
+    }
+    if (password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter your password.');
       return;
     }
 
@@ -115,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final appUser = await ApiClient.login(username);
+      final appUser = await ApiClient.login(username, password);
       if (appUser != null) {
         widget.onLoginSuccess(appUser);
         return;
@@ -133,6 +141,10 @@ class _LoginScreenState extends State<LoginScreen> {
           if (err.contains('User not registered') ||
               err.contains('Kullanici veritabaninda')) {
             _errorMessage = 'User not registered in database. Please ask the administrator (Poppolouse) to add you.';
+          } else if (err.contains('Hatali sifre')) {
+            _errorMessage = 'Incorrect password. Please try again.';
+          } else if (err.contains('Sifre zorunludur')) {
+            _errorMessage = 'Please enter your password.';
           } else {
             _errorMessage =
                 'Could not reach server database ($kApiBaseUrl). Check connection.';
@@ -185,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           Text(
-                            'VPS SQLite Authenticated Login',
+                            'Password Protected Panel Login',
                             style: const TextStyle(
                               fontSize: 11.5,
                               color: Color(0xffa1a1aa),
@@ -282,6 +294,72 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   onSubmitted: (_) => _handleLogin(),
                 ),
+                const SizedBox(height: 14),
+                Text(
+                  'PASSWORD',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xffa1a1aa),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    color: Color(0xfff4f4f5),
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    filled: true,
+                    fillColor: const Color(0xff18181b),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      size: 17,
+                      color: Color(0xffa1a1aa),
+                    ),
+                    suffixIcon: IconButton(
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        size: 17,
+                        color: const Color(0xffa1a1aa),
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                    hintText: 'Enter your password',
+                    hintStyle: const TextStyle(
+                      color: Color(0xff71717a),
+                      fontSize: 13,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 11,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: Color(0xff3f3f46)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(
+                        color: Color(0xff3b82f6),
+                        width: 1.2,
+                      ),
+                    ),
+                  ),
+                  onSubmitted: (_) => _handleLogin(),
+                ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 14),
                   Container(
@@ -343,7 +421,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 12),
                 Center(
                   child: Text(
-                    'Users added to the database by Admin can log in directly.',
+                    'Access requires both a registered username and password.',
                     style: const TextStyle(
                       fontSize: 11,
                       color: Color(0xff71717a),
