@@ -31,6 +31,7 @@ class _AppState extends State<App> {
         details: 'Session Closed',
       );
     }
+    ApiClient.clearSession();
     setState(() {
       _currentUser = null;
     });
@@ -443,8 +444,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(width: 8),
                       InkWell(
-                        onTap: () =>
-                            setState(() => _rememberMe = !_rememberMe),
+                        onTap: () => setState(() => _rememberMe = !_rememberMe),
                         child: const Text(
                           'Remember me (keeps you signed in on this PC)',
                           style: TextStyle(

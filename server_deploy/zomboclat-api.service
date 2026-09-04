@@ -1,0 +1,24 @@
+[Unit]
+Description=Zomboclat Admin Panel FastAPI Server
+After=network.target
+
+[Service]
+Type=simple
+User=pzserver
+Group=pzserver
+SupplementaryGroups=systemd-journal
+WorkingDirectory=/var/lib/zomboclat
+ExecStart=/usr/bin/python3 /var/lib/zomboclat/api_server.py
+Restart=always
+RestartSec=3
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+ReadWritePaths=/var/lib/zomboclat /home/pzserver/Zomboid
+
+[Install]
+WantedBy=multi-user.target

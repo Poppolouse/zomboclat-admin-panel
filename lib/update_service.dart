@@ -1,9 +1,12 @@
 part of 'main.dart';
 
-const _appVersion = '1.0.14';
+const _appVersion = '1.0.15';
 const _releaseApi =
     'https://api.github.com/repos/Poppolouse/zomboclat-admin-panel/releases/latest';
 const _installerName = 'Zomboclat-Admin-Panel-Setup.exe';
+const _signatureName = 'Zomboclat-Admin-Panel-Setup.exe.sig';
+const _updatePublicKey =
+    'MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA7K6Eas3mqPhOE+Jb4Aq36iKAB5Z88d9kJRaQnFdjKnBhzrYBMNqphrvF3BhW3zKIbNb0YHOLqfJeFCOgZ56VB3d3CWpOQ6AqZUL6aHHQfNNdAlWpIqYsM53hTN2fpvbIvzqrUDoWEI3hH0aD1nw2WIdFEZWtzqlL+XQcyCXPgu+k4GsrvGWMWf6tkmIvW/BUhVNX62jThsj3nrYH+UjjnRd+q/K7A3UBtEgiXhb7Gj+SHThukh8Nkqf8mwbSi9qt6YjZdrGJ5bjW7R1dugQZAk442DhB3x6zdZnxkT4KxeVSOaEi8NwwbeVrUu20WCsPrwVv6FWtGIL0+xqKY20WKwueh2IqD+bPsc+3vWO6r20l5XfVawwDh9j73E/L6HxvZJrG55QaKhmtg39HLXNzXcj7U6StMpgqicKwTNTgbVxDUycy35/suadSU/b8i2S6yUgDZZl6c0CDrPsvP+Vi9hmt1QIWuq2cr9mkym3/G1Gg5sMud97gqHJB8/7eyCVhAgMBAAE=';
 
 extension AppUpdateService on _AppState {
   Future<void> _checkForUpdate() async {
@@ -38,8 +41,13 @@ extension AppUpdateService on _AppState {
         orElse: () => <String, dynamic>{},
       );
       final url = installer['browser_download_url'] as String?;
-      if (url == null || url.isEmpty) return;
-      await _downloadAndLaunchInstaller(url);
+      final signature = assets.cast<Map<String, dynamic>>().firstWhere(
+        (asset) => asset['name'] == _signatureName,
+        orElse: () => <String, dynamic>{},
+      );
+      final signatureUrl = signature['browser_download_url'] as String?;
+      if (!_trustedReleaseUrl(url) || !_trustedReleaseUrl(signatureUrl)) return;
+      await _downloadAndLaunchInstaller(url!, signatureUrl!);
     } catch (_) {
       // Update checks must never interrupt normal administration work.
     } finally {
@@ -60,17 +68,32 @@ extension AppUpdateService on _AppState {
     return false;
   }
 
-  Future<void> _downloadAndLaunchInstaller(String downloadUrl) async {
+  bool _trustedReleaseUrl(String? value) {
+    if (value == null) return false;
+    final uri = Uri.tryParse(value);
+    return uri != null && uri.scheme == 'https' && uri.host == 'github.com';
+  }
+
+  Future<void> _downloadAndLaunchInstaller(
+    String downloadUrl,
+    String signatureUrl,
+  ) async {
     try {
       final target = File(
         '${Directory.systemTemp.path}${Platform.pathSeparator}$_installerName',
       );
-      final request = await HttpClient().getUrl(Uri.parse(downloadUrl));
-      final response = await request.close().timeout(
-        const Duration(minutes: 5),
-      );
-      if (response.statusCode != HttpStatus.ok) return;
-      await response.pipe(target.openWrite());
+      final signature = File('${target.path}.sig');
+      if (!await _downloadReleaseFile(downloadUrl, target)) return;
+      if (!await _downloadReleaseFile(signatureUrl, signature)) {
+        await target.delete();
+        return;
+      }
+      if (!await _hasValidUpdateSignature(target.path, signature.path)) {
+        await target.delete();
+        await signature.delete();
+        return;
+      }
+      await signature.delete();
       await Process.start(target.path, [
         '/VERYSILENT',
         '/SUPPRESSMSGBOXES',
@@ -78,5 +101,35 @@ extension AppUpdateService on _AppState {
       ]);
       exit(0);
     } catch (_) {}
+  }
+
+  Future<bool> _downloadReleaseFile(String url, File target) async {
+    final client = HttpClient();
+    try {
+      final request = await client.getUrl(Uri.parse(url));
+      final response = await request.close().timeout(
+        const Duration(minutes: 5),
+      );
+      if (response.statusCode != HttpStatus.ok) return false;
+      await response.pipe(target.openWrite());
+      return true;
+    } finally {
+      client.close();
+    }
+  }
+
+  Future<bool> _hasValidUpdateSignature(
+    String path,
+    String signaturePath,
+  ) async {
+    final encodedPath = base64Encode(utf8.encode(path));
+    final encodedSignaturePath = base64Encode(utf8.encode(signaturePath));
+    final result = await Process.run('powershell.exe', [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      "\$target=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$encodedPath')); \$signaturePath=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$encodedSignaturePath')); \$rsa=[Security.Cryptography.RSA]::Create(); \$read=0; \$rsa.ImportSubjectPublicKeyInfo([Convert]::FromBase64String('$_updatePublicKey'),[ref]\$read); \$ok=\$rsa.VerifyData([IO.File]::ReadAllBytes(\$target),[IO.File]::ReadAllBytes(\$signaturePath),[Security.Cryptography.HashAlgorithmName]::SHA256,[Security.Cryptography.RSASignaturePadding]::Pkcs1); if (\$ok) { exit 0 } else { exit 1 }",
+    ], runInShell: false);
+    return result.exitCode == 0;
   }
 }

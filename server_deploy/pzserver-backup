@@ -1,0 +1,34 @@
+#!/bin/bash
+set -euo pipefail
+
+backup=/srv/pzserver-backups
+stage=$(mktemp -d)
+was_active=false
+
+cleanup() {
+  rm -rf -- "$stage"
+  if "$was_active"; then
+    systemctl start pzserver.service
+  fi
+}
+trap cleanup EXIT
+
+mkdir -p "$backup"
+if systemctl is-active --quiet pzserver.service; then
+  was_active=true
+  systemctl stop pzserver.service
+fi
+
+mkdir -p "$stage/zomboclat" "$stage/systemd"
+sqlite3 /var/lib/zomboclat/zomboclat.db ".backup '$stage/zomboclat/zomboclat.db'"
+cp -a /var/lib/zomboclat/*.py "$stage/zomboclat/"
+cp -a /etc/systemd/system/zomboclat-api.service "$stage/systemd/"
+
+target="$backup/pzserver-$(date +%F).tar.zst"
+tar --zstd -cf "$target.tmp" \
+  -C /home/pzserver Zomboid \
+  -C /home/pzserver/pzserver ProjectZomboid64.json \
+  -C "$stage" zomboclat systemd
+zstd --test "$target.tmp"
+mv -f -- "$target.tmp" "$target"
+find "$backup" -type f -name 'pzserver-*.tar.zst' -mtime +14 -delete

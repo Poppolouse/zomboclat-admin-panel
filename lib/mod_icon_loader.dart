@@ -25,7 +25,11 @@ class ModIconCache {
   String _sanitize(String key) =>
       key.replaceAll(RegExp(r'[^A-Za-z0-9_.\-]'), '_');
 
-  Future<Uint8List?> load(String modName, String iconFile, String itemId) async {
+  Future<Uint8List?> load(
+    String modName,
+    String iconFile,
+    String itemId,
+  ) async {
     final key = '$modName|$iconFile|$itemId';
     final cached = _resolved[key];
     if (cached != null && cached.existsSync()) {
@@ -80,6 +84,7 @@ class ModIconCache {
       final req = await ApiClient._httpClient
           .getUrl(uri)
           .timeout(const Duration(seconds: 8));
+      ApiClient._authorize(req);
       final resp = await req.close().timeout(const Duration(seconds: 8));
       if (resp.statusCode != 200) return null;
       final bytes = await resp.fold<List<int>>(
@@ -130,8 +135,11 @@ class _ModIconImageState extends State<ModIconImage> {
   }
 
   Future<void> _load() async {
-    final bytes = await ModIconCache.instance
-        .load(widget.modName, widget.iconFile, widget.itemId);
+    final bytes = await ModIconCache.instance.load(
+      widget.modName,
+      widget.iconFile,
+      widget.itemId,
+    );
     if (!mounted) return;
     setState(() {
       _bytes = bytes;
@@ -253,9 +261,7 @@ class RemoteIconCache {
     final key = _sanitize(iconName.toLowerCase());
     if (_mem.containsKey(key)) return _mem[key];
 
-    final f = File(
-      '${_cacheDir.path}${Platform.pathSeparator}$key.png',
-    );
+    final f = File('${_cacheDir.path}${Platform.pathSeparator}$key.png');
     if (f.existsSync()) {
       try {
         final b = f.readAsBytesSync();
@@ -286,6 +292,7 @@ class RemoteIconCache {
       final req = await ApiClient._httpClient
           .getUrl(uri)
           .timeout(const Duration(seconds: 8));
+      ApiClient._authorize(req);
       final resp = await req.close().timeout(const Duration(seconds: 8));
       if (resp.statusCode != 200) return null;
       final bytes = await resp.fold<List<int>>(

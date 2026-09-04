@@ -1,8 +1,9 @@
 part of 'main.dart';
 
-const String kApiBaseUrl = 'http://45.142.115.19:28080';
+const String kApiBaseUrl = 'https://45.142.115.19';
 
 class ApiClient {
+  static String? _sessionToken;
   static final HttpClient _httpClient = HttpClient()
     ..connectionTimeout = const Duration(seconds: 6);
 
@@ -15,6 +16,7 @@ class ApiClient {
         .getUrl(uri)
         .timeout(Duration(seconds: timeoutSeconds));
     req.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
+    _authorize(req);
     final resp = await req.close().timeout(Duration(seconds: timeoutSeconds));
     final body = await resp.transform(utf8.decoder).join();
     if (resp.statusCode >= 200 && resp.statusCode < 300) {
@@ -33,6 +35,7 @@ class ApiClient {
         .postUrl(uri)
         .timeout(Duration(seconds: timeoutSeconds));
     req.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
+    _authorize(req);
     final jsonStr = jsonEncode(data);
     req.add(utf8.encode(jsonStr));
     final resp = await req.close().timeout(Duration(seconds: timeoutSeconds));
@@ -44,6 +47,15 @@ class ApiClient {
   }
 
   // Health
+  static void _authorize(HttpClientRequest request) {
+    final token = _sessionToken;
+    if (token != null && token.isNotEmpty) {
+      request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+    }
+  }
+
+  static void clearSession() => _sessionToken = null;
+
   static Future<bool> ping({int timeoutMs = 3000}) async {
     try {
       final res = await _get(
@@ -63,6 +75,9 @@ class ApiClient {
       'password': password,
     });
     if (res['status'] == 'ok' && res['user'] != null) {
+      final token = res['token']?.toString() ?? '';
+      if (token.isEmpty) throw StateError('Secure session was not created.');
+      _sessionToken = token;
       return AppUser.fromJson(res['user'] as Map<String, dynamic>);
     }
     final msg = res['message']?.toString() ?? 'Giris basarisiz';
