@@ -1103,10 +1103,12 @@ def update_player_full(username, payload_json_str):
 
     # 3. Apply live in-game changes via RCON
     try:
-        role_names = {1: "none", 2: "none", 3: "none", 4: "observer", 5: "gm", 6: "moderator", 7: "admin"}
-        target_role = role_names.get(role_id, "none")
-        if target_role != "none":
-            send_rcon(f'setaccesslevel "{username}" "{target_role}"')
+        # Role id -> PZ access level. Roles 1/2/3 map to the plain "user" level:
+        # the game has no "none" access level, so demote MUST also send
+        # setaccesslevel (otherwise the live player keeps old privileges).
+        role_names = {1: "user", 2: "user", 3: "user", 4: "observer", 5: "gm", 6: "moderator", 7: "admin"}
+        target_role = role_names.get(role_id, "user")
+        send_rcon(f'setaccesslevel "{username}" "{target_role}"')
         
         if is_banned:
             send_rcon(f'banuser "{username}" -ip -r "{ban_reason}"')
