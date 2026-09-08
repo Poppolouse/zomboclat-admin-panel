@@ -128,6 +128,18 @@ class _DashState extends State<Dash> {
   final Map<String, int> _godPresetIntervalSec = {};
   final Map<String, TextEditingController> _godPresetIntervalCtrls = {};
   String? _godPresetExpandedId;
+  DateTime? _godLastStrikeAt;
+  int _godNextStrikeIn = 0;
+  int _godStrikesFired = 0;
+  int _godPresetTotalDuration = 0;
+
+  String get _godLastStrikeText {
+    final t = _godLastStrikeAt;
+    if (t == null) return '';
+    final diff = DateTime.now().difference(t);
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+    return '${diff.inMinutes}m ago';
+  }
   final TextEditingController _godHordeCtrl = TextEditingController(
     text: '100',
   );

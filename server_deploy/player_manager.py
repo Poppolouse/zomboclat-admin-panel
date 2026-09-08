@@ -786,10 +786,31 @@ def send_rcon(cmd):
         payload = cmd.encode('utf-8') + b'\x00\x00'
         pkt = struct.pack('<iii', len(payload) + 8, req_id, 2) + payload
         s.sendall(pkt)
-        resp = s.recv(4096)
+        # RCON may answer with multiple packets (auth ack + command response);
+        # read until timeout to capture the full payload, otherwise the real
+        # command result (e.g. "Lightning triggered" / "User not found") is lost.
+        resp = b""
+        s.settimeout(1.0)
+        while True:
+            try:
+                chunk = s.recv(4096)
+                if not chunk:
+                    break
+                resp += chunk
+            except socket.timeout:
+                break
         body = ""
-        if len(resp) >= 12:
-            body = resp[12:-2].decode('utf-8', errors='ignore')
+        # take the LAST packet's text (the command response, not the ack)
+        offset = 0
+        while offset + 12 <= len(resp):
+            ln = struct.unpack('<i', resp[offset:offset+4])[0]
+            if ln < 10 or offset + 4 + ln > len(resp):
+                break
+            pkt_body = resp[offset+12:offset+4+ln-2]
+            txt = pkt_body.decode('utf-8', errors='ignore')
+            if txt.strip():
+                body = txt
+            offset += 4 + ln
         return {"status": "ok", "response": body.strip()}
     except Exception as e:
         return {"status": "error", "message": str(e)}

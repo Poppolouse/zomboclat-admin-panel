@@ -190,6 +190,15 @@ extension DashGodActionsMixin on _DashState {
           'Lightning struck: $target (${preset.name})',
         );
       }
+      if (mounted) {
+        setState(() {
+          _godLastStrikeAt = DateTime.now();
+          _godNextStrikeIn = every;
+          _godStrikesFired += 1;
+        });
+      }
+    } else if (every > 0 && _godNextStrikeIn > 0) {
+      if (mounted) setState(() => _godNextStrikeIn -= 1);
     }
     if (mounted) setState(() {});
   }
@@ -207,6 +216,10 @@ extension DashGodActionsMixin on _DashState {
         setState(() {
           _godPresetActive = preset.id;
           _godPresetRemaining = durationSec;
+          _godPresetTotalDuration = durationSec;
+          _godStrikesFired = 0;
+          _godLastStrikeAt = null;
+          _godNextStrikeIn = 0;
         });
       }
       _godPresetTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -218,6 +231,13 @@ extension DashGodActionsMixin on _DashState {
           'lightning "$target"',
           'Lightning struck: $target (${preset.name})',
         );
+      }
+      if (mounted) {
+        setState(() {
+          _godLastStrikeAt = DateTime.now();
+          _godNextStrikeIn = _godPresetThunderEverySec(preset);
+          _godStrikesFired += 1;
+        });
       }
     } else {
       if (mounted) {
@@ -301,6 +321,47 @@ extension DashGodActionsMixin on _DashState {
     );
   }
 
+  String _godPhaseInGameText() {
+    final elapsed = _godPresetTotalDuration - _godPresetRemaining;
+    final inGameMin = elapsed / 300.0 * 60;
+    if (inGameMin < 1) return 'just now';
+    if (inGameMin < 60) return '${inGameMin.round()} in-game min ago';
+    return '${(inGameMin / 60).toStringAsFixed(1)} in-game h ago';
+  }
+
+  String _godPhaseEndText(_GodPreset preset) {
+    final inGameMin = _godPresetRemaining / 300.0 * 60;
+    if (inGameMin < 60) return '${inGameMin.round()} in-game min';
+    return '${(inGameMin / 60).toStringAsFixed(1)} in-game h';
+  }
+
+  Widget _godStatusChip(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+  ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 4),
+        Text(
+          '$label: ',
+          style: const TextStyle(fontSize: 10.5, color: Color(0xffa1a1aa)),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildGodPresetCard() {
     final activePreset = _godPresets
         .where((p) => p.id == _godPresetActive)
@@ -331,37 +392,108 @@ extension DashGodActionsMixin on _DashState {
           const SizedBox(height: 12),
           if (activePreset != null) ...[
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: activePreset.color.withAlpha(30),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: activePreset.color.withAlpha(120)),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(activePreset.icon, size: 18, color: activePreset.color),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'AKTIF: ${activePreset.name}${_godPresetRemaining > 0 ? "  -  ${mins.toString().padLeft(2, "0")}:${secs.toString().padLeft(2, "0")} kaldı" : ""}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: activePreset.color,
+                  Row(
+                    children: [
+                      Icon(activePreset.icon, size: 18, color: activePreset.color),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'ACTIVE: ${activePreset.name}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: activePreset.color,
+                          ),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xff991b1b),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        onPressed: () => _stopGodPreset(),
+                        icon: const Icon(Icons.stop_rounded, size: 15),
+                        label: const Text('Stop Preset'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (_godPresetRemaining > 0) ...[
+                    // Overall progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _godPresetTotalDuration > 0
+                            ? 1 - (_godPresetRemaining / _godPresetTotalDuration)
+                            : null,
+                        minHeight: 6,
+                        backgroundColor: const Color(0xff3f3f46),
+                        valueColor: AlwaysStoppedAnimation(activePreset.color),
                       ),
                     ),
-                  ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xff991b1b),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 14,
+                      runSpacing: 4,
+                      children: [
+                        _godStatusChip(
+                          Icons.timer_rounded,
+                          'Time left',
+                          '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')} (real)',
+                          activePreset.color,
+                        ),
+                        if (_godPresetTotalDuration > 0)
+                          _godStatusChip(
+                            Icons.schedule_rounded,
+                            'Phase',
+                            'started ${_godPhaseInGameText()}',
+                            activePreset.color,
+                          ),
+                        if (activePreset.thunderEverySec > 0 &&
+                            _godNextStrikeIn > 0)
+                          _godStatusChip(
+                            Icons.bolt_rounded,
+                            'Next strike',
+                            'in ${_godNextStrikeIn}s${_godLastStrikeText.isEmpty ? '' : ' (last: $_godLastStrikeText)'}',
+                            const Color(0xfffbbf24),
+                          ),
+                        if (activePreset.thunderEverySec > 0)
+                          _godStatusChip(
+                            Icons.flash_on_rounded,
+                            'Strikes fired',
+                            '$_godStrikesFired',
+                            const Color(0xfffbbf24),
+                          ),
+                      ],
                     ),
-                    onPressed: () => _stopGodPreset(),
-                    icon: const Icon(Icons.stop_rounded, size: 15),
-                    label: const Text('Stop Preset'),
-                  ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Phase ends in ${_godPhaseEndText(activePreset)}. '
+                      '${activePreset.thunderEverySec > 0 ? 'Lightning strikes every ${_godPresetThunderEverySec(activePreset)}s real time.' : ''}',
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: Color(0xffa1a1aa),
+                      ),
+                    ),
+                  ] else
+                    Text(
+                      'Running until stopped.',
+                      style: const TextStyle(
+                        fontSize: 10.5,
+                        color: Color(0xffa1a1aa),
+                      ),
+                    ),
                 ],
               ),
             ),
