@@ -647,13 +647,13 @@ extension DashLayoutMixin on _DashState {
                   child: Row(
                     children: [
                       const Icon(
-                        Icons.speed_rounded,
+                        Icons.info_outline_rounded,
                         size: 12,
                         color: Color(0xff71717a),
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'pz-server • ${_latencyMs}ms',
+                        'v$_appVersion',
                         style: const TextStyle(
                           fontSize: 10,
                           color: Color(0xffa1a1aa),
