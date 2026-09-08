@@ -535,6 +535,9 @@ def auth_login(req: LoginRequest, request: Request):
         conn.close()
         return {"status": "error", "message": "User not registered in database. Please ask the administrator (Poppolouse) to add you."}
 
+_last_cpu_sample = None
+_last_cpu_time = 0.0
+
 @app.get("/api/server/status")
 def server_status():
     # Accurate host-wide metrics straight from /proc (matches hosting panel graphs).
@@ -545,10 +548,18 @@ def server_status():
                     return list(map(int, line.split()[1:]))
         return [0] * 10
 
-    p1 = read_cpu()
-    time.sleep(0.8)
+    global _last_cpu_sample, _last_cpu_time
+    now = time.time()
     p2 = read_cpu()
-    d = [b - a for a, b in zip(p1, p2)]
+    p1 = _last_cpu_sample
+    if p1 is None or (now - _last_cpu_time) < 0.2:
+        _last_cpu_sample = list(p2)
+        _last_cpu_time = now
+        d = [0] * len(p2)
+    else:
+        d = [b - a for a, b in zip(p1, p2)]
+        _last_cpu_sample = list(p2)
+        _last_cpu_time = now
     total = sum(d)
     idle = d[3] + d[4]
     busy = 100.0 * (1 - idle / total) if total > 0 else 0.0

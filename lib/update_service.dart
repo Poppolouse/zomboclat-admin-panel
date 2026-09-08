@@ -1,6 +1,6 @@
 part of 'main.dart';
 
-const _appVersion = '1.0.18';
+const _appVersion = '1.1.0';
 const _releaseApi =
     'https://api.github.com/repos/Poppolouse/zomboclat-admin-panel/releases/latest';
 const _installerName = 'Zomboclat-Admin-Panel-Setup.exe';
@@ -181,15 +181,68 @@ class _UpdateHelpers {
     String path,
     String signaturePath,
   ) async {
-    final encodedPath = base64Encode(utf8.encode(path));
-    final encodedSignaturePath = base64Encode(utf8.encode(signaturePath));
-    final result = await Process.run('powershell.exe', [
-      '-NoProfile',
-      '-NonInteractive',
-      '-Command',
-      "\$target=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$encodedPath')); \$signaturePath=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$encodedSignaturePath')); \$rsa=[Security.Cryptography.RSA]::Create(); \$read=0; \$rsa.ImportSubjectPublicKeyInfo([Convert]::FromBase64String('$_updatePublicKey'),[ref]\$read); \$ok=\$rsa.VerifyData([IO.File]::ReadAllBytes(\$target),[IO.File]::ReadAllBytes(\$signaturePath),[Security.Cryptography.HashAlgorithmName]::SHA256,[Security.Cryptography.RSASignaturePadding]::Pkcs1); if (\$ok) { exit 0 } else { exit 1 }",
-    ], runInShell: false);
-    return result.exitCode == 0;
+    // Pure-Dart RSA-SHA256 verification (PKCS1). The previous PowerShell-based
+    // check relied on ImportSubjectPublicKeyInfo, which does not exist in
+    // Windows PowerShell 5.1 (.NET Framework) and always failed there.
+    try {
+      final spki = base64Decode(_updatePublicKey);
+      final sig = await File(signaturePath).readAsBytes();
+      final data = await File(path).readAsBytes();
+      return _UpdateRsa.verifySha256Pkcs1(spki, data, sig);
+    } catch (_) {
+      return false;
+    }
+  }
+}
+
+class _UpdateRsa {
+  /// Parses a DER-encoded SubjectPublicKeyInfo (RSA) and verifies an
+  /// RSASSA-PKCS1-v1_5 SHA-256 signature over [data].
+  static bool verifySha256Pkcs1(
+    Uint8List spki,
+    Uint8List data,
+    Uint8List signature,
+  ) {
+    try {
+      final parser = pc1.ASN1Parser(spki);
+      final top = parser.nextObject() as pc1.ASN1Sequence;
+      if (top.elements == null || top.elements!.length < 2) return false;
+      final keyBits = top.elements![1];
+      final keyParser = pc1.ASN1Parser(
+        Uint8List.fromList(keyBits.valueBytes!),
+      );
+      final keySeq = keyParser.nextObject() as pc1.ASN1Sequence;
+      if (keySeq.elements == null || keySeq.elements!.length < 2) return false;
+      final modulus = _toBigInt(keySeq.elements![0]);
+      final exponent = _toBigInt(keySeq.elements![1]);
+      if (modulus == null || exponent == null) return false;
+
+      final publicKey = pc.RSAPublicKey(modulus, exponent);
+      final signer = pc.RSASigner(pc.SHA256Digest(), '0609608648016503040201');
+      signer.init(false, pc.PublicKeyParameter<pc.RSAPublicKey>(publicKey));
+      return signer.verifySignature(data, pc.RSASignature(signature));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static BigInt? _toBigInt(pc1.ASN1Object obj) {
+    try {
+      final raw = obj.valueBytes;
+      if (raw == null || raw.isEmpty) return null;
+      // DER integers may carry a leading 0x00; strip it for parse safety.
+      var b = raw;
+      while (b.length > 1 && b[0] == 0) {
+        b = Uint8List.fromList(b.sublist(1));
+      }
+      var result = BigInt.zero;
+      for (final byte in b) {
+        result = (result << 8) | BigInt.from(byte);
+      }
+      return result;
+    } catch (_) {
+      return null;
+    }
   }
 }
 

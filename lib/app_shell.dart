@@ -22,7 +22,6 @@ class _AppState extends State<App> {
       _currentUser = user;
     });
   }
-
   void _logout() async {
     if (_currentUser != null) {
       ApiClient.logAuditAction(

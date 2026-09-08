@@ -124,6 +124,10 @@ class _DashState extends State<Dash> {
   String _godPresetActive = '';
   int _godPresetRemaining = 0;
   Timer? _godPresetTimer;
+  final Map<String, double> _godPresetHours = {};
+  final Map<String, int> _godPresetIntervalSec = {};
+  final Map<String, TextEditingController> _godPresetIntervalCtrls = {};
+  String? _godPresetExpandedId;
   final TextEditingController _godHordeCtrl = TextEditingController(
     text: '100',
   );

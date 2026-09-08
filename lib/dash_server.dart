@@ -68,7 +68,7 @@ extension DashServerMixin on _DashState {
           _serviceState = serviceAct;
           _isServerOnline = isAct;
         }
-        _latencyMs = elapsedMs > 0 ? elapsedMs.clamp(12, 120) : 24;
+        _latencyMs = elapsedMs > 0 ? elapsedMs.clamp(8, 2000) : 24;
 
         cpu.add(currentCpu);
         ram.add(currentRamGb);
@@ -84,7 +84,7 @@ extension DashServerMixin on _DashState {
   void _applySimulatedFallback(int elapsedMs) {
     final rnd = Random();
     setState(() {
-      _latencyMs = elapsedMs > 0 ? elapsedMs.clamp(18, 90) : 24;
+      _latencyMs = elapsedMs > 0 ? elapsedMs.clamp(8, 2000) : 24;
       cpu.add((2.5 + rnd.nextDouble() * 4.0).clamp(0.0, 100.0));
       ram.add((6.12 + rnd.nextDouble() * 0.35).clamp(0.0, 16.0));
       if (cpu.length > 54) {

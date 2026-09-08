@@ -6,6 +6,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:pointycastle/export.dart' as pc;
+import 'package:pointycastle/asn1.dart' as pc1;
 
 part 'models.dart';
 part 'api_client.dart';

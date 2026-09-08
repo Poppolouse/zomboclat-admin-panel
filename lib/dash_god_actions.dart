@@ -28,7 +28,7 @@ const List<_GodPreset> _godPresets = [
     name: 'Clear Skies',
     icon: Icons.wb_sunny_rounded,
     color: Color(0xfffacc15),
-    desc: 'stopweather - Tum hava sistemini durdurur, gokyuzu acilir',
+    desc: 'stopweather - Stops the whole weather system, sky clears up',
     weatherCmds: ['stopweather'],
   ),
   _GodPreset(
@@ -36,7 +36,7 @@ const List<_GodPreset> _godPresets = [
     name: 'Light Rain',
     icon: Icons.grain_rounded,
     color: Color(0xff60a5fa),
-    desc: 'startrain 25 - Hafif cifli serpintisi (yogunluk 25/100)',
+    desc: 'startrain 25 - Light drizzle (intensity 25/100)',
     weatherCmds: ['startrain 25'],
   ),
   _GodPreset(
@@ -44,7 +44,7 @@ const List<_GodPreset> _godPresets = [
     name: 'Heavy Rain',
     icon: Icons.water_drop_rounded,
     color: Color(0xff3b82f6),
-    desc: 'startrain 75 - Sagana kadar yagmur (yogunluk 75/100)',
+    desc: 'startrain 75 - Pouring rain (intensity 75/100)',
     weatherCmds: ['startrain 75'],
   ),
   _GodPreset(
@@ -52,7 +52,7 @@ const List<_GodPreset> _godPresets = [
     name: 'Thunderstorm',
     icon: Icons.thunderstorm_rounded,
     color: Color(0xff818cf8),
-    desc: 'startstorm 4 + 90 sn arayla thunder (20 dk)',
+    desc: 'startstorm 4 + thunder every 90 s (20 real min)',
     weatherCmds: ['startstorm 4'],
     thunderEverySec: 90,
     durationSec: 20 * 60,
@@ -62,7 +62,7 @@ const List<_GodPreset> _godPresets = [
     name: 'Tropical Storm',
     icon: Icons.cyclone_rounded,
     color: Color(0xff22d3ee),
-    desc: 'startstorm 8 + 35 sn arayla thunder (30 dk) - Sidsli tropikal firtina',
+    desc: 'startstorm 8 + thunder every 35 s (30 real min) - Sids-style tropical storm',
     weatherCmds: ['startstorm 8'],
     thunderEverySec: 35,
     durationSec: 30 * 60,
@@ -72,7 +72,7 @@ const List<_GodPreset> _godPresets = [
     name: 'Heavy Lightning Rain',
     icon: Icons.bolt_rounded,
     color: Color(0xfffde047),
-    desc: 'startrain 90 + 15 sn arayla thunder (15 dk) - Surekli simsek cakan sagana',
+    desc: 'startrain 90 + thunder every 15 s (15 real min) - Constant lightning downpour',
     weatherCmds: ['startrain 90'],
     thunderEverySec: 15,
     durationSec: 15 * 60,
@@ -82,7 +82,7 @@ const List<_GodPreset> _godPresets = [
     name: 'Lightning Only',
     icon: Icons.flash_on_rounded,
     color: Color(0xfffbbf24),
-    desc: 'stoprain + 45 sn arayla thunder (10 dk) - Yagmur yok, sadece simsek',
+    desc: 'stoprain + thunder every 45 s (10 real min) - No rain, lightning only',
     weatherCmds: ['stoprain'],
     thunderEverySec: 45,
     durationSec: 10 * 60,
@@ -137,6 +137,40 @@ extension DashGodActionsMixin on _DashState {
     return _godSelectedTarget;
   }
 
+  /// Real seconds for a preset based on the user-set in-game duration.
+  /// DayLength=4 on this server => one in-game day = 2 real hours,
+  /// so 1 in-game hour = 5 real minutes = 300 real seconds.
+  int _godPresetDurationSec(_GodPreset preset) {
+    final hours = _godPresetHours[preset.id] ?? _defaultHours(preset);
+    return (hours * 300).round();
+  }
+
+  double _defaultHours(_GodPreset preset) {
+    if (preset.durationSec <= 0) return 0;
+    return preset.durationSec / 300.0;
+  }
+
+  /// Thunder interval: user-set override, otherwise scales with duration
+  /// (roughly every `thunderEverySec` at the default duration).
+  int _godPresetThunderEverySec(_GodPreset preset) {
+    if (preset.thunderEverySec <= 0) return 0;
+    final manual = _godPresetIntervalSec[preset.id];
+    if (manual != null) return manual.clamp(5, 1800);
+    final def = _defaultHours(preset);
+    if (def <= 0) return preset.thunderEverySec;
+    final hours = _godPresetHours[preset.id] ?? def;
+    final scaled = preset.thunderEverySec * (hours / def);
+    return scaled.round().clamp(8, 1800);
+  }
+
+  TextEditingController _godIntervalCtrl(String presetId, int fallback) {
+    final ctrl = _godPresetIntervalCtrls[presetId];
+    if (ctrl != null) return ctrl;
+    final c = TextEditingController(text: '$fallback');
+    _godPresetIntervalCtrls[presetId] = c;
+    return c;
+  }
+
   void _godPresetTick() {
     _godPresetRemaining -= 1;
     if (_godPresetRemaining <= 0) {
@@ -147,13 +181,13 @@ extension DashGodActionsMixin on _DashState {
       (p) => p.id == _godPresetActive,
       orElse: () => _godPresets.first,
     );
-    if (preset.thunderEverySec > 0 &&
-        _godPresetRemaining % preset.thunderEverySec == 0) {
+    final every = _godPresetThunderEverySec(preset);
+    if (every > 0 && _godPresetRemaining % every == 0) {
       final target = _resolveGodTarget();
       if (target != null) {
         _quickSendRcon(
-          'thunder "$target"',
-          'Thunder cakildi: $target (${preset.name})',
+          'lightning "$target"',
+          'Lightning struck: $target (${preset.name})',
         );
       }
     }
@@ -165,13 +199,14 @@ extension DashGodActionsMixin on _DashState {
     _godPresetTimer?.cancel();
     _godPresetTimer = null;
     for (final cmd in preset.weatherCmds) {
-      await _quickSendRcon(cmd, '${preset.name} baslatildi: $cmd');
+      await _quickSendRcon(cmd, '${preset.name} started: $cmd');
     }
-    if (preset.thunderEverySec > 0 && preset.durationSec > 0) {
+    final durationSec = _godPresetDurationSec(preset);
+    if (preset.thunderEverySec > 0 && durationSec > 0) {
       if (mounted) {
         setState(() {
           _godPresetActive = preset.id;
-          _godPresetRemaining = preset.durationSec;
+          _godPresetRemaining = durationSec;
         });
       }
       _godPresetTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -180,8 +215,8 @@ extension DashGodActionsMixin on _DashState {
       final target = _resolveGodTarget();
       if (target != null) {
         _quickSendRcon(
-          'thunder "$target"',
-          'Thunder cakildi: $target (${preset.name})',
+          'lightning "$target"',
+          'Lightning struck: $target (${preset.name})',
         );
       }
     } else {
@@ -202,7 +237,7 @@ extension DashGodActionsMixin on _DashState {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           backgroundColor: Color(0xff3f3f46),
-          content: Text('Preset suresi doldu, otomatik olarak durduruldu'),
+          content: Text('Preset duration ended, stopped automatically'),
         ),
       );
     }
@@ -221,6 +256,30 @@ extension DashGodActionsMixin on _DashState {
         _buildGodEventsCard(),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  Widget _godTimeTooltip(String message) {
+    return Tooltip(
+      message: message,
+      textAlign: TextAlign.justify,
+      waitDuration: const Duration(milliseconds: 250),
+      showDuration: const Duration(seconds: 8),
+      textStyle: const TextStyle(
+        fontSize: 10.5,
+        color: Color(0xfff4f4f5),
+        height: 1.4,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xff18181b),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xff3f3f46)),
+      ),
+      child: const Icon(
+        Icons.info_outline_rounded,
+        size: 13,
+        color: Color(0xff71717a),
+      ),
     );
   }
 
@@ -260,13 +319,13 @@ extension DashGodActionsMixin on _DashState {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _godSectionHeader(
-            'WEATHER PRESETS - TEK TIK HAVA SENARYOLARI',
+            'WEATHER PRESETS - ONE-CLICK WEATHER SCENARIOS',
             Icons.auto_awesome_rounded,
             const Color(0xffeab308),
           ),
           const SizedBox(height: 4),
           Text(
-            'RCON komutlarini kombinasyon olarak uygular. Thunder iceren presetler secili hedefe (veya rastgele online oyuncuya) otomatik simsek cakar.',
+            'Applies RCON commands as combos. Thunder presets automatically strike lightning on the selected target (or a random online player).',
             style: const TextStyle(fontSize: 11, color: Color(0xff71717a)),
           ),
           const SizedBox(height: 12),
@@ -315,6 +374,10 @@ extension DashGodActionsMixin on _DashState {
                 runSpacing: 10,
                 children: _godPresets.map((p) {
                   final isActive = _godPresetActive == p.id;
+                  final isExpanded = _godPresetExpandedId == p.id;
+                  final hasThunder = p.thunderEverySec > 0;
+                  final hours = _godPresetHours[p.id] ?? _defaultHours(p);
+                  final everySec = _godPresetThunderEverySec(p);
                   return Container(
                     width: cardW > 240 ? cardW : (constraints.maxWidth - 10) / 2,
                     decoration: BoxDecoration(
@@ -323,7 +386,11 @@ extension DashGodActionsMixin on _DashState {
                           : const Color(0xff27272a),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: isActive ? p.color : const Color(0xff3f3f46),
+                        color: isActive
+                            ? p.color
+                            : isExpanded
+                            ? const Color(0xff52525b)
+                            : const Color(0xff3f3f46),
                         width: isActive ? 1.5 : 1,
                       ),
                     ),
@@ -331,7 +398,11 @@ extension DashGodActionsMixin on _DashState {
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(6),
-                        onTap: () => _startGodPreset(p),
+                        onTap: () {
+                          setState(() {
+                            _godPresetExpandedId = isExpanded ? null : p.id;
+                          });
+                        },
                         child: Padding(
                           padding: const EdgeInsets.all(10),
                           child: Column(
@@ -354,6 +425,17 @@ extension DashGodActionsMixin on _DashState {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
+                                  AnimatedRotation(
+                                    turns: isExpanded ? 0.5 : 0,
+                                    duration: const Duration(
+                                      milliseconds: 150,
+                                    ),
+                                    child: const Icon(
+                                      Icons.expand_more_rounded,
+                                      size: 16,
+                                      color: Color(0xff71717a),
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 6),
@@ -365,6 +447,209 @@ extension DashGodActionsMixin on _DashState {
                                 ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
+                              ),
+                              AnimatedCrossFade(
+                                duration: const Duration(milliseconds: 150),
+                                crossFadeState: isExpanded
+                                    ? CrossFadeState.showSecond
+                                    : CrossFadeState.showFirst,
+                                firstChild: const SizedBox(width: 0, height: 0),
+                                secondChild: Padding(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (hasThunder) ...[
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Duration (in-game hours)',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xffa1a1aa),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            _godTimeTooltip(
+                                              'Duration in in-game hours.\n'
+                                              'On this server 1 in-game day = 2 real hours '
+                                              '(DayLength=4), so 1 in-game hour = '
+                                              '5 real minutes.\n'
+                                              'Example: 4 in-game hours = 20 real minutes.',
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Slider(
+                                                value: hours.clamp(0.5, 24.0),
+                                                min: 0.5,
+                                                max: 24.0,
+                                                divisions: 47,
+                                                activeColor: p.color,
+                                                label:
+                                                    '${hours.toStringAsFixed(hours % 1 == 0 ? 0 : 1)} h in-game',
+                                                onChanged:
+                                                    _godPresetActive == p.id
+                                                    ? null
+                                                    : (v) => setState(
+                                                        () => _godPresetHours[p
+                                                            .id] = v,
+                                                      ),
+                                              ),
+                                            ),
+                                            Text(
+                                              '${hours.toStringAsFixed(hours % 1 == 0 ? 0 : 1)} h\n≈${((hours * 300) / 60).round()} min real',
+                                              textAlign: TextAlign.right,
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                color: Color(0xff71717a),
+                                                fontFamily: 'monospace',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Thunder interval (real seconds)',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xffa1a1aa),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            _godTimeTooltip(
+                                              'In REAL time (seconds).\n'
+                                              'Lightning strikes at players\' positions '
+                                              'every interval (visible bolt + thunder sound).\n'
+                                              'Type a value and press Enter, or use the slider.\n'
+                                              'Leave untouched to auto-scale with duration.',
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Slider(
+                                                value:
+                                                    (_godPresetIntervalSec[p
+                                                        .id] ??
+                                                    everySec)
+                                                    .toDouble()
+                                                    .clamp(5.0, 1800.0),
+                                                min: 5,
+                                                max: 1800,
+                                                divisions: 359,
+                                                activeColor: p.color,
+                                                label:
+                                                    '${(_godPresetIntervalSec[p.id] ?? everySec)} sn',
+                                                onChanged:
+                                                    _godPresetActive == p.id
+                                                    ? null
+                                                    : (v) => setState(
+                                                        () => _godPresetIntervalSec[p
+                                                                .id] =
+                                                            v.round(),
+                                                      ),
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              width: 64,
+                                              child: TextField(
+                                                enabled:
+                                                    _godPresetActive != p.id,
+                                                keyboardType:
+                                                    TextInputType.number,
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter
+                                                      .digitsOnly,
+                                                ],
+                                                controller: _godIntervalCtrl(
+                                                  p.id,
+                                                  everySec,
+                                                ),
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xfff4f4f5),
+                                                ),
+                                                decoration: InputDecoration(
+                                                  isDense: true,
+                                                  suffixText: 'sec',
+                                                  suffixStyle: const TextStyle(
+                                                    fontSize: 9,
+                                                    color: Color(0xff71717a),
+                                                  ),
+                                                  contentPadding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 6,
+                                                      ),
+                                                  border:
+                                                      const OutlineInputBorder(),
+                                                ),
+                                                onSubmitted: (v) {
+                                                  final n =
+                                                      int.tryParse(v.trim()) ??
+                                                      everySec;
+                                                  setState(
+                                                    () => _godPresetIntervalSec[p
+                                                        .id] = n.clamp(5, 1800),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Text(
+                                          '(≈${(everySec / 300.0 * 60).toStringAsFixed(0)} in-game minutes)',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Color(0xff71717a),
+                                          ),
+                                        ),
+                                      ] else ...[
+                                        Text(
+                                          'This preset has no duration, it changes the weather instantly.',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            color: Color(0xff71717a),
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 8),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: p.color.withAlpha(
+                                              45,
+                                            ),
+                                            foregroundColor: p.color,
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 6,
+                                            ),
+                                          ),
+                                          onPressed:
+                                              _godPresetActive == p.id
+                                              ? null
+                                              : () => _startGodPreset(p),
+                                          icon: const Icon(
+                                            Icons.play_arrow_rounded,
+                                            size: 15,
+                                          ),
+                                          label: const Text('Start'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -460,7 +745,7 @@ extension DashGodActionsMixin on _DashState {
                 ),
                 onPressed: () => _quickSendRcon(
                   'startrain ${_godRainIntensity.round()}',
-                  'Yagmur basladi (yogunluk ${_godRainIntensity.round()})',
+                  'Rain started (intensity ${_godRainIntensity.round()})',
                 ),
                 icon: const Icon(Icons.water_drop_rounded, size: 15),
                 label: const Text('Start Rain'),
@@ -530,7 +815,7 @@ extension DashGodActionsMixin on _DashState {
                 ),
                 onPressed: () => _quickSendRcon(
                   'startstorm ${_godStormHours.round()}',
-                  'Firtina basladi (${_godStormHours.round()} oyun saati)',
+                  'Storm started (${_godStormHours.round()} in-game hours)',
                 ),
                 icon: const Icon(Icons.thunderstorm_rounded, size: 15),
                 label: const Text('Start Storm'),
@@ -561,7 +846,7 @@ extension DashGodActionsMixin on _DashState {
                 ),
                 onPressed: () => _quickSendRcon(
                   'stopweather',
-                  'Hava sistemi durduruldu',
+                  'Weather system stopped',
                 ),
                 icon: const Icon(Icons.wb_sunny_outlined, size: 15),
                 label: const Text('Stop Weather'),
@@ -593,7 +878,7 @@ extension DashGodActionsMixin on _DashState {
               ),
               const Spacer(),
               IconButton(
-                tooltip: 'Online oyunculari yenile (RCON players)',
+                tooltip: 'Refresh online players (RCON players)',
                 icon: _isLoadingGodOnline
                     ? const SizedBox(
                         width: 13,
@@ -639,7 +924,7 @@ extension DashGodActionsMixin on _DashState {
                   items: [
                     const DropdownMenuItem(
                       value: 'random',
-                      child: Text('Rastgele (Online oyuncu)'),
+                      child: Text('Random (online player)'),
                     ),
                     ..._godOnlinePlayers.map(
                       (u) => DropdownMenuItem(value: u, child: Text(u)),
@@ -663,7 +948,7 @@ extension DashGodActionsMixin on _DashState {
                       const SnackBar(
                         backgroundColor: Color(0xff991b1b),
                         content: Text(
-                          'Online oyuncu yok, thunder icin hedef bulunamadi',
+                          'No online players, no target found for thunder',
                         ),
                       ),
                     );
@@ -671,7 +956,7 @@ extension DashGodActionsMixin on _DashState {
                   }
                   _quickSendRcon(
                     'thunder "$target"',
-                    'Thunder cakildi: $target',
+                    'Lightning struck: $target',
                   );
                 },
                 icon: const Icon(Icons.bolt_rounded, size: 16),
@@ -690,7 +975,7 @@ extension DashGodActionsMixin on _DashState {
                       const SnackBar(
                         backgroundColor: Color(0xff991b1b),
                         content: Text(
-                          'Online oyuncu yok, lightning icin hedef bulunamadi',
+                          'No online players, no target found for lightning',
                         ),
                       ),
                     );
@@ -698,7 +983,7 @@ extension DashGodActionsMixin on _DashState {
                   }
                   _quickSendRcon(
                     'lightning "$target"',
-                    'Lightning cakildi: $target',
+                    'Lightning struck: $target',
                   );
                 },
                 icon: const Icon(Icons.flash_on_rounded, size: 16),
@@ -807,7 +1092,7 @@ extension DashGodActionsMixin on _DashState {
                     isDense: true,
                     filled: true,
                     fillColor: const Color(0xff27272a),
-                    labelText: 'Zombie sayisi',
+                    labelText: 'Zombie count',
                     labelStyle: const TextStyle(
                       fontSize: 11,
                       color: Color(0xff71717a),
@@ -820,7 +1105,7 @@ extension DashGodActionsMixin on _DashState {
               ),
               const SizedBox(width: 10),
               Text(
-                'Hedef: ${_godSelectedTarget == 'random' || _godSelectedTarget.isEmpty ? 'Rastgele' : _godSelectedTarget}',
+                'Target: ${_godSelectedTarget == 'random' || _godSelectedTarget.isEmpty ? 'Random' : _godSelectedTarget}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: Color(0xffa1a1aa),
@@ -838,7 +1123,7 @@ extension DashGodActionsMixin on _DashState {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         backgroundColor: Color(0xff991b1b),
-                        content: Text('Gecerli bir zombie sayisi gir'),
+                        content: Text('Enter a valid zombie count'),
                       ),
                     );
                     return;
@@ -848,14 +1133,14 @@ extension DashGodActionsMixin on _DashState {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         backgroundColor: Color(0xff991b1b),
-                        content: Text('Online oyuncu yok, horde spawn edilemedi'),
+                        content: Text('No online players, could not spawn horde'),
                       ),
                     );
                     return;
                   }
                   _quickSendRcon(
                     'createhorde $count "$target"',
-                    '$count zombilik horde spawn edildi: $target',
+                    '$count zombie horde spawned: $target',
                   );
                 },
                 icon: const Icon(Icons.coronavirus_rounded, size: 16),
