@@ -1,0 +1,10 @@
+version=1
+id=3788844491
+title=Zomboclat Server Fixes
+description=Zomboclat private-server companion for Build 42.20.
+description=Press F8 at the visual glitch to identify missing ground-item sprites.
+description=Restores More Traits Gym Goer compatibility after the Build 42.20 BodyPartType API rename.
+description=Pairs visible lightning flashes with the close Thunder crack, normal rumble, and vanilla distance delay.
+description=Includes Zomboclat Claycraft: turn a full dirt bag, a strainer, and water into a full clay bag.
+tags=Build 42
+visibility=public

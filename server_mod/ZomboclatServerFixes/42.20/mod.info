@@ -1,0 +1,5 @@
+name=Zomboclat Server Fixes
+id=ZomboclatServerFixes
+require=1299328280/ToadTraits
+poster=poster.png
+description=Zomboclat private-server diagnostics, More Traits Gym Goer compatibility, close thunder for visible lightning, and a forge recipe to craft Spare Engine Parts (Mechanics 4, Blacksmithing 6, Metal Welding 4) for Build 42.20.

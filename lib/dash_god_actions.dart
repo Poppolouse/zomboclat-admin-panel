@@ -82,7 +82,8 @@ const List<_GodPreset> _godPresets = [
     name: 'Lightning Only',
     icon: Icons.flash_on_rounded,
     color: Color(0xfffbbf24),
-    desc: 'stoprain + thunder every 45 s (10 real min) - No rain, lightning only',
+    desc:
+        'stoprain + thunder every 45 s (10 real min) - No rain, lightning only',
     weatherCmds: ['stoprain'],
     thunderEverySec: 45,
     durationSec: 10 * 60,
@@ -532,9 +533,7 @@ extension DashGodActionsMixin on _DashState {
             duration: const Duration(milliseconds: 600),
             child: activePreset != null
                 ? Column(
-                    children: [
-                      _buildGodActiveBanner(activePreset, mins, secs),
-                    ],
+                    children: [_buildGodActiveBanner(activePreset, mins, secs)],
                   )
                 : const SizedBox(width: 0, height: 0),
           ),
@@ -551,7 +550,9 @@ extension DashGodActionsMixin on _DashState {
                   final hours = _godPresetHours[p.id] ?? _defaultHours(p);
                   final everySec = _godPresetThunderEverySec(p);
                   return Container(
-                    width: cardW > 240 ? cardW : (constraints.maxWidth - 10) / 2,
+                    width: cardW > 240
+                        ? cardW
+                        : (constraints.maxWidth - 10) / 2,
                     decoration: BoxDecoration(
                       color: isActive
                           ? p.color.withAlpha(35)
@@ -599,9 +600,7 @@ extension DashGodActionsMixin on _DashState {
                                   ),
                                   AnimatedRotation(
                                     turns: isExpanded ? 0.5 : 0,
-                                    duration: const Duration(
-                                      milliseconds: 150,
-                                    ),
+                                    duration: const Duration(milliseconds: 150),
                                     child: const Icon(
                                       Icons.expand_more_rounded,
                                       size: 16,
@@ -669,8 +668,10 @@ extension DashGodActionsMixin on _DashState {
                                                     _godPresetActive == p.id
                                                     ? null
                                                     : (v) => setState(
-                                                        () => _godPresetHours[p
-                                                            .id] = v,
+                                                        () =>
+                                                            _godPresetHours[p
+                                                                    .id] =
+                                                                v,
                                                       ),
                                               ),
                                             ),
@@ -699,7 +700,7 @@ extension DashGodActionsMixin on _DashState {
                                             _godTimeTooltip(
                                               'In REAL time (seconds).\n'
                                               'Lightning strikes at players\' positions '
-                                              'every interval (visible bolt + thunder sound).\n'
+                                              'every interval (visible bolt + loud thunder crack + rumble).\n'
                                               'Type a value and press Enter, or use the slider.\n'
                                               'Leave untouched to auto-scale with duration.',
                                             ),
@@ -712,10 +713,10 @@ extension DashGodActionsMixin on _DashState {
                                               child: Slider(
                                                 value:
                                                     (_godPresetIntervalSec[p
-                                                        .id] ??
-                                                    everySec)
-                                                    .toDouble()
-                                                    .clamp(5.0, 1800.0),
+                                                                .id] ??
+                                                            everySec)
+                                                        .toDouble()
+                                                        .clamp(5.0, 1800.0),
                                                 min: 5,
                                                 max: 1800,
                                                 divisions: 359,
@@ -726,9 +727,10 @@ extension DashGodActionsMixin on _DashState {
                                                     _godPresetActive == p.id
                                                     ? null
                                                     : (v) => setState(
-                                                        () => _godPresetIntervalSec[p
-                                                                .id] =
-                                                            v.round(),
+                                                        () =>
+                                                            _godPresetIntervalSec[p
+                                                                .id] = v
+                                                                .round(),
                                                       ),
                                               ),
                                             ),
@@ -771,8 +773,12 @@ extension DashGodActionsMixin on _DashState {
                                                       int.tryParse(v.trim()) ??
                                                       everySec;
                                                   setState(
-                                                    () => _godPresetIntervalSec[p
-                                                        .id] = n.clamp(5, 1800),
+                                                    () =>
+                                                        _godPresetIntervalSec[p
+                                                            .id] = n.clamp(
+                                                          5,
+                                                          1800,
+                                                        ),
                                                   );
                                                 },
                                               ),
@@ -808,8 +814,7 @@ extension DashGodActionsMixin on _DashState {
                                               vertical: 6,
                                             ),
                                           ),
-                                          onPressed:
-                                              _godPresetActive == p.id
+                                          onPressed: _godPresetActive == p.id
                                               ? null
                                               : () => _startGodPreset(p),
                                           icon: const Icon(
@@ -892,10 +897,7 @@ extension DashGodActionsMixin on _DashState {
               Container(
                 width: 52,
                 alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xff3b82f6).withAlpha(40),
                   borderRadius: BorderRadius.circular(4),
@@ -962,10 +964,7 @@ extension DashGodActionsMixin on _DashState {
               Container(
                 width: 52,
                 alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xff818cf8).withAlpha(40),
                   borderRadius: BorderRadius.circular(4),
@@ -1004,10 +1003,8 @@ extension DashGodActionsMixin on _DashState {
                   foregroundColor: const Color(0xffa1a1aa),
                   side: const BorderSide(color: Color(0xff52525b)),
                 ),
-                onPressed: () => _quickSendRcon(
-                  'stoprain',
-                  'Yagmur durduruldu',
-                ),
+                onPressed: () =>
+                    _quickSendRcon('stoprain', 'Yagmur durduruldu'),
                 icon: const Icon(Icons.water_drop_outlined, size: 15),
                 label: const Text('Stop Rain'),
               ),
@@ -1016,10 +1013,8 @@ extension DashGodActionsMixin on _DashState {
                   foregroundColor: const Color(0xffa1a1aa),
                   side: const BorderSide(color: Color(0xff52525b)),
                 ),
-                onPressed: () => _quickSendRcon(
-                  'stopweather',
-                  'Weather system stopped',
-                ),
+                onPressed: () =>
+                    _quickSendRcon('stopweather', 'Weather system stopped'),
                 icon: const Icon(Icons.wb_sunny_outlined, size: 15),
                 label: const Text('Stop Weather'),
               ),
@@ -1218,10 +1213,8 @@ extension DashGodActionsMixin on _DashState {
                   backgroundColor: const Color(0xffbe123c),
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () => _quickSendRcon(
-                  'alarm',
-                  'Alarm caldirildi (admin binasi)',
-                ),
+                onPressed: () =>
+                    _quickSendRcon('alarm', 'Alarm caldirildi (admin binasi)'),
                 icon: const Icon(Icons.notifications_active_rounded, size: 16),
                 label: const Text('Alarm'),
               ),
@@ -1230,10 +1223,8 @@ extension DashGodActionsMixin on _DashState {
                   backgroundColor: const Color(0xff1d4ed8),
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () => _quickSendRcon(
-                  'removezombies',
-                  'Zombiler temizlendi',
-                ),
+                onPressed: () =>
+                    _quickSendRcon('removezombies', 'Zombiler temizlendi'),
                 icon: const Icon(Icons.cleaning_services_rounded, size: 16),
                 label: const Text('Remove Zombies'),
               ),
@@ -1253,9 +1244,7 @@ extension DashGodActionsMixin on _DashState {
                 child: TextField(
                   controller: _godHordeCtrl,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   style: const TextStyle(
                     fontSize: 13,
                     color: Color(0xfff4f4f5),
@@ -1278,10 +1267,7 @@ extension DashGodActionsMixin on _DashState {
               const SizedBox(width: 10),
               Text(
                 'Target: ${_godSelectedTarget == 'random' || _godSelectedTarget.isEmpty ? 'Random' : _godSelectedTarget}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xffa1a1aa),
-                ),
+                style: const TextStyle(fontSize: 12, color: Color(0xffa1a1aa)),
               ),
               const SizedBox(width: 10),
               ElevatedButton.icon(
@@ -1305,7 +1291,9 @@ extension DashGodActionsMixin on _DashState {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         backgroundColor: Color(0xff991b1b),
-                        content: Text('No online players, could not spawn horde'),
+                        content: Text(
+                          'No online players, could not spawn horde',
+                        ),
                       ),
                     );
                     return;

@@ -20,12 +20,13 @@ import uvicorn
 sys.path.insert(0, "/var/lib/zomboclat")
 
 import db
+import audit_policy
 import config_manager
 import player_manager
 
 app = FastAPI(
     title="Zomboclat Admin Panel API",
-    version="1.0.15",
+    version="1.1.1",
     docs_url=None,
     redoc_url=None,
     openapi_url=None,
@@ -118,6 +119,168 @@ def _revoke_user_sessions(username: str) -> None:
         for token, session in list(_sessions.items()):
             if session["username"].lower() == username.lower():
                 _sessions.pop(token, None)
+
+
+# ---- Weather preset persistence + scheduler --------------------------------
+# State lives in zomboclat.db so every admin (and app restarts) see it.
+_weather_lock = threading.Lock()
+
+
+def _weather_state_default():
+    return {
+        "preset_id": "",
+        "started_at": 0.0,
+        "duration_sec": 0,
+        "interval_sec": 0,
+        "strikes": 0,
+        "last_strike_at": 0.0,
+    }
+
+
+def _load_weather_state():
+    conn = db.get_db()
+    c = conn.cursor()
+    c.execute(
+        "CREATE TABLE IF NOT EXISTS weather_preset (id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT)"
+    )
+    row = c.execute("SELECT data FROM weather_preset WHERE id = 1").fetchone()
+    conn.close()
+    if not row:
+        return _weather_state_default()
+    try:
+        st = json.loads(row[0])
+        for key, value in _weather_state_default().items():
+            st.setdefault(key, value)
+        return st
+    except Exception:
+        return _weather_state_default()
+
+
+def _save_weather_state(st):
+    conn = db.get_db()
+    c = conn.cursor()
+    c.execute(
+        "CREATE TABLE IF NOT EXISTS weather_preset (id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT)"
+    )
+    c.execute(
+        "INSERT OR REPLACE INTO weather_preset (id, data) VALUES (1, ?)",
+        (json.dumps(st),),
+    )
+    conn.commit()
+    conn.close()
+
+
+def _weather_remaining(st):
+    if not st.get("preset_id") or not st.get("duration_sec"):
+        return 0
+    elapsed = time.time() - st["started_at"]
+    return max(0, int(st["duration_sec"] - elapsed))
+
+
+def _weather_scheduler_loop():
+    while True:
+        try:
+            with _weather_lock:
+                st = _load_weather_state()
+                if st.get("preset_id") and st.get("duration_sec"):
+                    remaining = _weather_remaining(st)
+                    if remaining <= 0:
+                        st["preset_id"] = ""
+                        st["duration_sec"] = 0
+                        st["strikes"] = 0
+                        st["last_strike_at"] = 0.0
+                        _save_weather_state(st)
+                    else:
+                        interval = int(st.get("interval_sec") or 0)
+                        if interval > 0:
+                            last = float(st.get("last_strike_at") or 0)
+                            if time.time() - last >= interval:
+                                try:
+                                    player_manager.send_rcon('lightning "admin"')
+                                except Exception:
+                                    pass
+                                st["last_strike_at"] = time.time()
+                                st["strikes"] = int(st.get("strikes") or 0) + 1
+                                _save_weather_state(st)
+        except Exception:
+            pass
+        time.sleep(1)
+
+
+threading.Thread(target=_weather_scheduler_loop, daemon=True).start()
+
+
+class WeatherPresetStartRequest(BaseModel):
+    preset_id: str
+    duration_sec: int
+    interval_sec: int = 0
+    by_user: str = ""
+
+
+class WeatherPresetStopRequest(BaseModel):
+    by_user: str = ""
+
+
+@app.post("/api/weather/preset/start")
+def weather_preset_start(req: WeatherPresetStartRequest):
+    actor = require_admin()
+    if not re.fullmatch(r"[a-z_]{2,32}", req.preset_id):
+        raise HTTPException(status_code=422, detail="Invalid preset id.")
+    if not (10 <= req.duration_sec <= 86400):
+        raise HTTPException(status_code=422, detail="Invalid duration.")
+    with _weather_lock:
+        st = _load_weather_state()
+        st["preset_id"] = req.preset_id
+        st["started_at"] = time.time()
+        st["duration_sec"] = int(req.duration_sec)
+        st["interval_sec"] = max(0, int(req.interval_sec))
+        st["strikes"] = 0
+        st["last_strike_at"] = time.time()
+        _save_weather_state(st)
+    db.log_action(
+        actor["username"],
+        "WEATHER_PRESET_START",
+        f"{req.preset_id} ({req.duration_sec}s, every {req.interval_sec}s)",
+    )
+    return {"status": "ok"}
+
+
+@app.post("/api/weather/preset/stop")
+def weather_preset_stop(req: WeatherPresetStopRequest):
+    actor = require_admin()
+    with _weather_lock:
+        st = _load_weather_state()
+        st["preset_id"] = ""
+        st["duration_sec"] = 0
+        st["strikes"] = 0
+        st["last_strike_at"] = 0.0
+        _save_weather_state(st)
+    db.log_action(actor["username"], "WEATHER_PRESET_STOP", "preset stopped")
+    return {"status": "ok"}
+
+
+@app.get("/api/weather/preset/state")
+def weather_preset_state():
+    require_admin()
+    with _weather_lock:
+        st = _load_weather_state()
+        remaining = _weather_remaining(st)
+        interval = int(st.get("interval_sec") or 0)
+        last = float(st.get("last_strike_at") or 0)
+        next_in = 0
+        if st.get("preset_id") and interval > 0:
+            next_in = max(0, interval - int(time.time() - last))
+        return {
+            "status": "ok",
+            "active": bool(st.get("preset_id")) and remaining > 0,
+            "preset_id": st.get("preset_id", ""),
+            "started_at": st.get("started_at", 0),
+            "duration_sec": st.get("duration_sec", 0),
+            "remaining_sec": remaining,
+            "interval_sec": interval,
+            "next_strike_in": next_in,
+            "strikes": st.get("strikes", 0),
+        }
 
 
 def _validate_name(value: str, field: str, max_length: int = 64) -> str:
@@ -736,7 +899,8 @@ def update_game_player(req: PlayerUpdateRequest):
 def send_rcon_cmd(req: RconRequest):
     actor = require_admin()
     res = player_manager.send_rcon(req.command)
-    db.log_action(actor["username"], "RCON_COMMAND", "Authorized RCON command executed")
+    if audit_policy.should_log_rcon(actor["username"]):
+        db.log_action(actor["username"], "RCON_COMMAND", "Authorized RCON command executed")
     return res
 
 @app.get("/api/users")

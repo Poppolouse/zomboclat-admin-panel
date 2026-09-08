@@ -1,6 +1,6 @@
 part of 'main.dart';
 
-const _appVersion = '1.1.0';
+const _appVersion = '1.1.1';
 const _releaseApi =
     'https://api.github.com/repos/Poppolouse/zomboclat-admin-panel/releases/latest';
 const _installerName = 'Zomboclat-Admin-Panel-Setup.exe';
@@ -21,14 +21,7 @@ class _UpdateState {
   final ValueNotifier<String> foundVersion = ValueNotifier('');
 }
 
-enum _UpdatePhase {
-  checking,
-  none,
-  found,
-  downloading,
-  verifying,
-  installing,
-}
+enum _UpdatePhase { checking, none, found, downloading, verifying, installing }
 
 extension AppUpdateService on _AppState {
   Future<void> _checkForUpdate() async {
@@ -208,9 +201,7 @@ class _UpdateRsa {
       final top = parser.nextObject() as pc1.ASN1Sequence;
       if (top.elements == null || top.elements!.length < 2) return false;
       final keyBits = top.elements![1];
-      final keyParser = pc1.ASN1Parser(
-        Uint8List.fromList(keyBits.valueBytes!),
-      );
+      final keyParser = pc1.ASN1Parser(Uint8List.fromList(keyBits.valueBytes!));
       final keySeq = keyParser.nextObject() as pc1.ASN1Sequence;
       if (keySeq.elements == null || keySeq.elements!.length < 2) return false;
       final modulus = _toBigInt(keySeq.elements![0]);
@@ -353,7 +344,9 @@ class _UpdateProgressDialogState extends State<_UpdateProgressDialog> {
                   valueListenable: st.progress,
                   builder: (context, value, _) {
                     final indeterminate = phase == _UpdatePhase.checking;
-                    final pct = indeterminate ? null : (value * 100).clamp(0, 100);
+                    final pct = indeterminate
+                        ? null
+                        : (value * 100).clamp(0, 100);
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -385,9 +378,7 @@ class _UpdateProgressDialogState extends State<_UpdateProgressDialog> {
                                 phase != _UpdatePhase.none &&
                                 phase != _UpdatePhase.installing)
                               Text(
-                                pct == null
-                                    ? ''
-                                    : '${pct.toStringAsFixed(0)}%',
+                                pct == null ? '' : '${pct.toStringAsFixed(0)}%',
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Color(0xffa1a1aa),
