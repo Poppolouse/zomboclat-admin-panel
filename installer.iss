@@ -1,6 +1,6 @@
 #define MyAppName "Zomboclat Admin Panel"
 #define MyAppVersion "1.1.0"
-#define MyAppPublisher "Zomboclat"
+#define MyAppPublisher "Poppolouse (Özgü Arda Türkmen)"
 #define MyAppExeName "zomboclat_admin_panel.exe"
 
 [Setup]
@@ -8,6 +8,11 @@ AppId={{D5A034B8-52F6-4E40-8AE9-1EE80D831D9B}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppPublisherURL=https://github.com/Poppolouse/zomboclat-admin-panel
+AppUpdatesURL=https://github.com/Poppolouse/zomboclat-admin-panel/releases
+AppSupportURL=https://github.com/Poppolouse/zomboclat-admin-panel/issues
+AppCopyright=© 2026 Poppolouse (Özgü Arda Türkmen)
+CloseApplications=no
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputDir=build\installer

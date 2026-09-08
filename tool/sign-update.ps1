@@ -3,12 +3,21 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# Authenticode cert (publisher identity shown in Windows UX)
 $certificate = Get-ChildItem Cert:\CurrentUser\My |
+    Where-Object { $_.Subject -like "*Poppolouse*" -and $_.HasPrivateKey } |
+    Sort-Object NotAfter -Descending |
+    Select-Object -First 1
+# Update-signature cert (its public key is embedded in the app as _updatePublicKey)
+$updateCert = Get-ChildItem Cert:\CurrentUser\My |
     Where-Object { $_.Subject -eq "CN=Zomboclat Update Signing" -and $_.HasPrivateKey } |
     Sort-Object NotAfter -Descending |
     Select-Object -First 1
 
 if (-not $certificate) {
+    throw "Poppolouse code-signing key was not found in the current user certificate store."
+}
+if (-not $updateCert) {
     throw "Zomboclat update signing key was not found in the current user certificate store."
 }
 
@@ -27,7 +36,7 @@ if ($signtool) {
     Write-Warning "signtool.exe not found; installer has no Authenticode signature."
 }
 
-$privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($certificate)
+$privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($updateCert)
 $signature = $privateKey.SignData(
     [System.IO.File]::ReadAllBytes($resolvedInstaller),
     [System.Security.Cryptography.HashAlgorithmName]::SHA256,
