@@ -132,6 +132,8 @@ class _DashState extends State<Dash> {
   int _godNextStrikeIn = 0;
   int _godStrikesFired = 0;
   int _godPresetTotalDuration = 0;
+  bool _godServerDriven = false;
+  bool _godPresetFadingOut = false;
 
   String get _godLastStrikeText {
     final t = _godLastStrikeAt;
@@ -191,9 +193,11 @@ class _DashState extends State<Dash> {
     _fetchServerLogs();
     _fetchIniConfig();
     _fetchSandboxConfig();
+    _syncGodPresetFromServer();
 
     _metricsTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
       _fetchRealServerMetrics();
+      _syncGodPresetFromServer();
       // Konsol ekranlarından biri açıksa ve canlı akış aktifse arka planda logları güncelle
       if ((_selectedTab == 5 || _selectedTab == 9 || _selectedTab == 10) &&
           _isLiveConsoleStreaming &&

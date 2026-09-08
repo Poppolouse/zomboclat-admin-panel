@@ -171,36 +171,57 @@ extension DashGodActionsMixin on _DashState {
     return c;
   }
 
-  void _godPresetTick() {
-    _godPresetRemaining -= 1;
-    if (_godPresetRemaining <= 0) {
-      _stopGodPreset(showMsg: true);
-      return;
-    }
-    final preset = _godPresets.firstWhere(
-      (p) => p.id == _godPresetActive,
-      orElse: () => _godPresets.first,
-    );
-    final every = _godPresetThunderEverySec(preset);
-    if (every > 0 && _godPresetRemaining % every == 0) {
-      final target = _resolveGodTarget();
-      if (target != null) {
-        _quickSendRcon(
-          'lightning "$target"',
-          'Lightning struck: $target (${preset.name})',
-        );
+  /// Syncs local preset state with the server-persisted state.
+  /// Called periodically; ensures all admins see the same running preset.
+  Future<void> _syncGodPresetFromServer() async {
+    if (!widget.user.isAdmin) return;
+    try {
+      final res = await ApiClient.getWeatherPresetState();
+      if (res['status'] != 'ok' || !mounted) return;
+      final active = res['active'] == true;
+      final serverId = res['preset_id']?.toString() ?? '';
+      final remaining = res['remaining_sec'] as int? ?? 0;
+      final total = res['duration_sec'] as int? ?? 0;
+      final nextIn = res['next_strike_in'] as int? ?? 0;
+      final strikes = res['strikes'] as int? ?? 0;
+      if (!active) {
+        // server says nothing running -> fade out local state
+        if (_godPresetActive.isNotEmpty && mounted) {
+          setState(() {
+            _godPresetFadingOut = true;
+          });
+          Future.delayed(const Duration(milliseconds: 600), () {
+            if (mounted) {
+              setState(() {
+                _godPresetActive = '';
+                _godPresetFadingOut = false;
+              });
+            }
+          });
+        }
+        return;
       }
-      if (mounted) {
+      if (_godPresetActive != serverId) {
         setState(() {
-          _godLastStrikeAt = DateTime.now();
-          _godNextStrikeIn = every;
-          _godStrikesFired += 1;
+          _godPresetActive = serverId;
+          _godPresetRemaining = remaining;
+          _godPresetTotalDuration = total;
+          _godNextStrikeIn = nextIn;
+          _godStrikesFired = strikes;
+          _godServerDriven = true;
+        });
+      } else {
+        setState(() {
+          _godPresetRemaining = remaining;
+          _godPresetTotalDuration = total;
+          _godNextStrikeIn = nextIn;
+          _godStrikesFired = strikes;
+          _godServerDriven = true;
         });
       }
-    } else if (every > 0 && _godNextStrikeIn > 0) {
-      if (mounted) setState(() => _godNextStrikeIn -= 1);
+    } catch (_) {
+      // ignore - transient API errors must not break the UI
     }
-    if (mounted) setState(() {});
   }
 
   Future<void> _startGodPreset(_GodPreset preset) async {
@@ -212,6 +233,15 @@ extension DashGodActionsMixin on _DashState {
     }
     final durationSec = _godPresetDurationSec(preset);
     if (preset.thunderEverySec > 0 && durationSec > 0) {
+      final interval = _godPresetThunderEverySec(preset);
+      try {
+        await ApiClient.startWeatherPreset(
+          presetId: preset.id,
+          durationSec: durationSec,
+          intervalSec: interval,
+          byUser: widget.user.username,
+        );
+      } catch (_) {}
       if (mounted) {
         setState(() {
           _godPresetActive = preset.id;
@@ -220,23 +250,7 @@ extension DashGodActionsMixin on _DashState {
           _godStrikesFired = 0;
           _godLastStrikeAt = null;
           _godNextStrikeIn = 0;
-        });
-      }
-      _godPresetTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-        _godPresetTick();
-      });
-      final target = _resolveGodTarget();
-      if (target != null) {
-        _quickSendRcon(
-          'lightning "$target"',
-          'Lightning struck: $target (${preset.name})',
-        );
-      }
-      if (mounted) {
-        setState(() {
-          _godLastStrikeAt = DateTime.now();
-          _godNextStrikeIn = _godPresetThunderEverySec(preset);
-          _godStrikesFired += 1;
+          _godServerDriven = true;
         });
       }
     } else {
@@ -249,11 +263,25 @@ extension DashGodActionsMixin on _DashState {
     }
   }
 
-  void _stopGodPreset({bool showMsg = false}) {
+  Future<void> _stopGodPreset({bool showMsg = false}) async {
+    // Soft stop: fade the status card out over ~600ms before clearing.
     _godPresetTimer?.cancel();
     _godPresetTimer = null;
-    if (mounted) setState(() => _godPresetActive = '');
+    try {
+      await ApiClient.stopWeatherPreset(byUser: widget.user.username);
+    } catch (_) {}
+    if (mounted) setState(() => _godPresetFadingOut = true);
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) {
+      setState(() {
+        _godPresetActive = '';
+        _godPresetFadingOut = false;
+        _godStrikesFired = 0;
+        _godNextStrikeIn = 0;
+      });
+    }
     if (showMsg) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           backgroundColor: Color(0xff3f3f46),
@@ -335,6 +363,115 @@ extension DashGodActionsMixin on _DashState {
     return '${(inGameMin / 60).toStringAsFixed(1)} in-game h';
   }
 
+  Widget _buildGodActiveBanner(_GodPreset activePreset, int mins, int secs) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: activePreset.color.withAlpha(30),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: activePreset.color.withAlpha(120)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(activePreset.icon, size: 18, color: activePreset.color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'ACTIVE: ${activePreset.name}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: activePreset.color,
+                  ),
+                ),
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xff991b1b),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                ),
+                onPressed: () => _stopGodPreset(),
+                icon: const Icon(Icons.stop_rounded, size: 15),
+                label: const Text('Stop Preset'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_godPresetRemaining > 0) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: _godPresetTotalDuration > 0
+                    ? 1 - (_godPresetRemaining / _godPresetTotalDuration)
+                    : null,
+                minHeight: 6,
+                backgroundColor: const Color(0xff3f3f46),
+                valueColor: AlwaysStoppedAnimation(activePreset.color),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 14,
+              runSpacing: 4,
+              children: [
+                _godStatusChip(
+                  Icons.timer_rounded,
+                  'Time left',
+                  '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')} (real)',
+                  activePreset.color,
+                ),
+                if (_godPresetTotalDuration > 0)
+                  _godStatusChip(
+                    Icons.schedule_rounded,
+                    'Phase',
+                    'started ${_godPhaseInGameText()}',
+                    activePreset.color,
+                  ),
+                if (activePreset.thunderEverySec > 0 && _godNextStrikeIn > 0)
+                  _godStatusChip(
+                    Icons.bolt_rounded,
+                    'Next strike',
+                    'in ${_godNextStrikeIn}s${_godLastStrikeText.isEmpty ? '' : ' (last: $_godLastStrikeText)'}',
+                    const Color(0xfffbbf24),
+                  ),
+                if (activePreset.thunderEverySec > 0)
+                  _godStatusChip(
+                    Icons.flash_on_rounded,
+                    'Strikes fired',
+                    '$_godStrikesFired',
+                    const Color(0xfffbbf24),
+                  ),
+                if (_godServerDriven)
+                  _godStatusChip(
+                    Icons.cloud_sync_rounded,
+                    'State',
+                    'shared (server-side)',
+                    const Color(0xff93c5fd),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Phase ends in ${_godPhaseEndText(activePreset)}. '
+              '${activePreset.thunderEverySec > 0 ? 'Lightning strikes every ${_godPresetThunderEverySec(activePreset)}s real time. ' : ''}'
+              'Runs on the server - visible to all admins even after app restart.',
+              style: const TextStyle(fontSize: 10.5, color: Color(0xffa1a1aa)),
+            ),
+          ] else
+            Text(
+              'Running until stopped.',
+              style: const TextStyle(fontSize: 10.5, color: Color(0xffa1a1aa)),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _godStatusChip(
     IconData icon,
     String label,
@@ -390,114 +527,17 @@ extension DashGodActionsMixin on _DashState {
             style: const TextStyle(fontSize: 11, color: Color(0xff71717a)),
           ),
           const SizedBox(height: 12),
-          if (activePreset != null) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: activePreset.color.withAlpha(30),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: activePreset.color.withAlpha(120)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          AnimatedOpacity(
+            opacity: _godPresetFadingOut ? 0.0 : 1.0,
+            duration: const Duration(milliseconds: 600),
+            child: activePreset != null
+                ? Column(
                     children: [
-                      Icon(activePreset.icon, size: 18, color: activePreset.color),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'ACTIVE: ${activePreset.name}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: activePreset.color,
-                          ),
-                        ),
-                      ),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xff991b1b),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                        ),
-                        onPressed: () => _stopGodPreset(),
-                        icon: const Icon(Icons.stop_rounded, size: 15),
-                        label: const Text('Stop Preset'),
-                      ),
+                      _buildGodActiveBanner(activePreset, mins, secs),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  if (_godPresetRemaining > 0) ...[
-                    // Overall progress bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: _godPresetTotalDuration > 0
-                            ? 1 - (_godPresetRemaining / _godPresetTotalDuration)
-                            : null,
-                        minHeight: 6,
-                        backgroundColor: const Color(0xff3f3f46),
-                        valueColor: AlwaysStoppedAnimation(activePreset.color),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 14,
-                      runSpacing: 4,
-                      children: [
-                        _godStatusChip(
-                          Icons.timer_rounded,
-                          'Time left',
-                          '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')} (real)',
-                          activePreset.color,
-                        ),
-                        if (_godPresetTotalDuration > 0)
-                          _godStatusChip(
-                            Icons.schedule_rounded,
-                            'Phase',
-                            'started ${_godPhaseInGameText()}',
-                            activePreset.color,
-                          ),
-                        if (activePreset.thunderEverySec > 0 &&
-                            _godNextStrikeIn > 0)
-                          _godStatusChip(
-                            Icons.bolt_rounded,
-                            'Next strike',
-                            'in ${_godNextStrikeIn}s${_godLastStrikeText.isEmpty ? '' : ' (last: $_godLastStrikeText)'}',
-                            const Color(0xfffbbf24),
-                          ),
-                        if (activePreset.thunderEverySec > 0)
-                          _godStatusChip(
-                            Icons.flash_on_rounded,
-                            'Strikes fired',
-                            '$_godStrikesFired',
-                            const Color(0xfffbbf24),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Phase ends in ${_godPhaseEndText(activePreset)}. '
-                      '${activePreset.thunderEverySec > 0 ? 'Lightning strikes every ${_godPresetThunderEverySec(activePreset)}s real time.' : ''}',
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        color: Color(0xffa1a1aa),
-                      ),
-                    ),
-                  ] else
-                    Text(
-                      'Running until stopped.',
-                      style: const TextStyle(
-                        fontSize: 10.5,
-                        color: Color(0xffa1a1aa),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
+                  )
+                : const SizedBox(width: 0, height: 0),
+          ),
           LayoutBuilder(
             builder: (ctx, constraints) {
               final cardW = (constraints.maxWidth - 20) / 3;

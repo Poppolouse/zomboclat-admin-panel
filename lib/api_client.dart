@@ -221,6 +221,31 @@ class ApiClient {
     });
   }
 
+  // Weather preset persistence (server-side, shared across admins)
+  static Future<Map<String, dynamic>> getWeatherPresetState() async {
+    return await _get('/api/weather/preset/state');
+  }
+
+  static Future<Map<String, dynamic>> startWeatherPreset({
+    required String presetId,
+    required int durationSec,
+    required int intervalSec,
+    required String byUser,
+  }) async {
+    return await _post('/api/weather/preset/start', {
+      'preset_id': presetId,
+      'duration_sec': durationSec,
+      'interval_sec': intervalSec,
+      'by_user': byUser,
+    });
+  }
+
+  static Future<Map<String, dynamic>> stopWeatherPreset({
+    required String byUser,
+  }) async {
+    return await _post('/api/weather/preset/stop', {'by_user': byUser});
+  }
+
   // Panel Users (SQLite)
   static Future<List<AppUser>> getPanelUsers() async {
     final res = await _get('/api/users');
