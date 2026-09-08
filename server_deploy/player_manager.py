@@ -5,6 +5,7 @@ import os
 import struct
 import re
 import socket
+import hashlib
 import urllib.request
 import xml.etree.ElementTree as ET
 import bcrypt
@@ -993,6 +994,19 @@ def get_players():
         "metadata": meta
     }))
 
+# ============================================================================
+# Password hashing (MUST match the PZ game server exactly):
+#   client sends: PZcrypt.hash(ServerWorldDatabase.encrypt(plain))
+#               = bcrypt( md5_hex(plain), salt = $2a$12$O/BFHoDFPrfFaNPAACmWpu )
+#   server compares: plaintext string equality (authClient -> String.equals)
+# Any random-salt bcrypt(plain) hash written here breaks in-game logins.
+# ============================================================================
+PZ_BCRYPT_SALT = "$2a$12$O/BFHoDFPrfFaNPAACmWpu"
+
+def pz_hash_password(plain_password):
+    md5_hex = hashlib.md5(plain_password.encode("utf-8")).hexdigest()
+    return bcrypt.hashpw(md5_hex.encode("utf-8"), PZ_BCRYPT_SALT.encode("utf-8")).decode("utf-8")
+
 def add_player(username, password, role_id=2):
     conn = get_db()
     if not conn:
@@ -1005,8 +1019,8 @@ def add_player(username, password, role_id=2):
         print(json.dumps({"status": "error", "message": "Bu kullanici adi zaten whitelistte kayitli"}))
         return
 
-    hashed_pwd = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(12, prefix=b"2a")).decode("utf-8")
-    cur.execute("INSERT INTO whitelist (world, username, password, role) VALUES ('pzserver', ?, ?, ?)", (username, hashed_pwd, role_id))
+    hashed_pwd = pz_hash_password(password)
+    cur.execute("INSERT INTO whitelist (world, username, password, authType, role) VALUES ('pzserver', ?, ?, 1, ?)", (username, hashed_pwd, role_id))
     conn.commit()
     conn.close()
     print(json.dumps({"status": "ok", "message": "Oyuncu eklendi"}))
@@ -1055,7 +1069,7 @@ def update_player_full(username, payload_json_str):
 
     # 1. Update whitelist table in pzserver.db
     if password:
-        hashed_pwd = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(12, prefix=b"2a")).decode("utf-8")
+        hashed_pwd = pz_hash_password(password)
         cur.execute("UPDATE whitelist SET role = ?, steamid = ?, displayName = ?, password = ? WHERE username = ?", (role_id, steamid, char_name, hashed_pwd, username))
     else:
         cur.execute("UPDATE whitelist SET role = ?, steamid = ?, displayName = ? WHERE username = ?", (role_id, steamid, char_name, username))
