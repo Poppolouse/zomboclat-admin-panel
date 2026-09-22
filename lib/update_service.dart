@@ -1,6 +1,6 @@
 part of 'main.dart';
 
-const _appVersion = '1.1.1';
+const _appVersion = '1.1.2';
 const _releaseApi =
     'https://api.github.com/repos/Poppolouse/zomboclat-admin-panel/releases/latest';
 const _installerName = 'Zomboclat-Admin-Panel-Setup.exe';
@@ -42,7 +42,11 @@ extension AppUpdateService on _AppState {
       );
       final body = await response.transform(utf8.decoder).join();
       client.close();
-      if (response.statusCode != HttpStatus.ok || !mounted) return;
+      if (!mounted) return;
+      if (response.statusCode != HttpStatus.ok) {
+        _showUpdateCheckError('GitHub returned HTTP ${response.statusCode}.');
+        return;
+      }
 
       final release = jsonDecode(body) as Map<String, dynamic>;
       final latest = (release['tag_name'] as String? ?? '').replaceFirst(
@@ -67,8 +71,7 @@ extension AppUpdateService on _AppState {
       );
       final signatureUrl = signature['browser_download_url'] as String?;
       if (!_trustedReleaseUrl(url) || !_trustedReleaseUrl(signatureUrl)) {
-        st.phase.value = _UpdatePhase.none;
-        if (mounted) setState(() => _isCheckingForUpdate = false);
+        _showUpdateCheckError('The release is missing a trusted installer or signature.');
         return;
       }
       st.foundVersion.value = latest;
@@ -77,10 +80,15 @@ extension AppUpdateService on _AppState {
         setState(() => _isCheckingForUpdate = false);
         _showUpdatePrompt(url!, signatureUrl!);
       }
-    } catch (_) {
-      st.phase.value = _UpdatePhase.none;
-      if (mounted) setState(() => _isCheckingForUpdate = false);
+    } catch (error) {
+      _showUpdateCheckError('Network error: $error');
     }
+  }
+
+  void _showUpdateCheckError(String message) {
+    if (!mounted) return;
+    _UpdateState().phase.value = _UpdatePhase.none;
+    setState(() => _updateCheckError = message);
   }
 
   bool _isNewerVersion(String candidate, String current) {

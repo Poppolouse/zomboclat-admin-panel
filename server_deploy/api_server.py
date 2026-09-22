@@ -290,6 +290,23 @@ def _validate_name(value: str, field: str, max_length: int = 64) -> str:
     return value
 
 
+# INI'de zaten calisan ama regex'e uymayan mevcut mod id'leri (istisna listesi)
+_MOD_ID_ALLOWLIST = frozenset({
+    "1299328280/ToadTraits",
+    "1299328280/ToadTraitsDisableSpec",
+    "50%metalweight",
+    "Distillery&Biofuel",
+    "GanydeBielovzki's Frockin Splendor!",
+    "GanydeBielovzki's Frockin Splendor! Vol.2",
+    "GanydeBielovzki's Frockin Splendor! Vol.3",
+    "GanydeBielovzki's Frockin Splendor! Vol.4",
+    "GanydeBielovzki's Frockin Splendor! Vol.5",
+    "GanydeBielovzki's Frockin Shirts n Ties",
+    "GanydeBielovzki's Frockin Stompers!",
+    "GanydeBielovzki's Frockin Wiseguys",
+})
+
+
 def _validate_ini_payload(settings: Dict[str, Any], mods: List[str], workshop_items: List[str]) -> None:
     if len(settings) > 500 or len(mods) > 500 or len(workshop_items) > 500:
         raise HTTPException(status_code=422, detail="Too many settings or mods.")
@@ -299,7 +316,10 @@ def _validate_ini_payload(settings: Dict[str, Any], mods: List[str], workshop_it
         if len(str(value)) > 4096 or "\n" in str(value) or "\r" in str(value):
             raise HTTPException(status_code=422, detail="Invalid setting value.")
     for value in [*mods, *workshop_items]:
-        if not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", str(value)):
+        val = str(value)
+        if val in _MOD_ID_ALLOWLIST:
+            continue
+        if not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", val):
             raise HTTPException(status_code=422, detail="Invalid mod identifier.")
 
 

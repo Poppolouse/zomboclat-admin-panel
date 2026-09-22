@@ -498,10 +498,12 @@ extension DashPlayersMixin on _DashState {
         byUser: widget.user.username,
       );
       if (jsonMap['status'] == 'ok') {
+        final response = jsonMap['response']?.toString().trim() ?? '';
+        final detail = response.isEmpty ? successMsg : '$successMsg\n$response';
         sm.showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xff15803d),
-            content: Text(successMsg),
+            content: Text(detail),
           ),
         );
       } else {

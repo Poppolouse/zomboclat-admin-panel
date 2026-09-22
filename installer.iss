@@ -1,5 +1,5 @@
 #define MyAppName "Zomboclat Admin Panel"
-#define MyAppVersion "1.1.1"
+#define MyAppVersion "1.1.2"
 #define MyAppPublisher "Poppolouse (Özgü Arda Türkmen)"
 #define MyAppExeName "zomboclat_admin_panel.exe"
 

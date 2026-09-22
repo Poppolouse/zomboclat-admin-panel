@@ -10,11 +10,27 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   AppUser? _currentUser;
   bool _isCheckingForUpdate = true;
+  String? _updateCheckError;
 
   @override
   void initState() {
     super.initState();
     _checkForUpdate();
+  }
+
+  void _retryUpdateCheck() {
+    setState(() {
+      _isCheckingForUpdate = true;
+      _updateCheckError = null;
+    });
+    _checkForUpdate();
+  }
+
+  void _continueWithoutUpdate() {
+    setState(() {
+      _isCheckingForUpdate = false;
+      _updateCheckError = null;
+    });
   }
 
   void _login(AppUser user) {
@@ -53,30 +69,88 @@ class _AppState extends State<App> {
         ),
       ),
       home: _isCheckingForUpdate
-          ? const _UpdateCheckScreen()
+          ? _UpdateCheckScreen(
+              error: _updateCheckError,
+              onRetry: _retryUpdateCheck,
+              onContinue: _continueWithoutUpdate,
+            )
           : _currentUser == null
-          ? LoginScreen(onLoginSuccess: _login)
+          ? LoginScreen(
+              onLoginSuccess: _login,
+              onCheckForUpdate: _retryUpdateCheck,
+            )
           : Dash(user: _currentUser!, onLogout: _logout),
     );
   }
 }
 
 class _UpdateCheckScreen extends StatelessWidget {
-  const _UpdateCheckScreen();
+  final String? error;
+  final VoidCallback onRetry;
+  final VoidCallback onContinue;
+
+  const _UpdateCheckScreen({
+    required this.error,
+    required this.onRetry,
+    required this.onContinue,
+  });
 
   @override
-  Widget build(BuildContext context) => const Scaffold(
-    body: Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('Checking for updates...'),
-        ],
+  Widget build(BuildContext context) {
+    final failed = error != null;
+    return Scaffold(
+      body: Center(
+        child: Container(
+          width: 440,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: const Color(0xff27272a),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xff3f3f46)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                failed ? Icons.cloud_off_outlined : Icons.system_update,
+                size: 32,
+                color: failed ? const Color(0xfffbbf24) : const Color(0xff60a5fa),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                failed ? 'Could not check for updates' : 'Checking for updates...',
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+              if (!failed) ...[
+                const SizedBox(height: 16),
+                const CircularProgressIndicator(),
+              ] else ...[
+                const SizedBox(height: 10),
+                Text(
+                  error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Color(0xfffca5a5), fontSize: 12),
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(onPressed: onContinue, child: const Text('Continue to panel')),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: onRetry,
+                      icon: const Icon(Icons.refresh, size: 17),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 // -------------------------------------------------------------
@@ -84,8 +158,13 @@ class _UpdateCheckScreen extends StatelessWidget {
 // -------------------------------------------------------------
 class LoginScreen extends StatefulWidget {
   final Function(AppUser) onLoginSuccess;
+  final VoidCallback onCheckForUpdate;
 
-  const LoginScreen({super.key, required this.onLoginSuccess});
+  const LoginScreen({
+    super.key,
+    required this.onLoginSuccess,
+    required this.onCheckForUpdate,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -496,12 +575,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 12),
                 Center(
-                  child: Text(
-                    'Access requires both a registered username and password.',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xff71717a),
-                    ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Access requires both a registered username and password.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xff71717a),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: widget.onCheckForUpdate,
+                        icon: const Icon(Icons.system_update_alt, size: 15),
+                        label: const Text('Check for updates'),
+                      ),
+                    ],
                   ),
                 ),
               ],

@@ -102,7 +102,7 @@ extension DashGodActionsMixin on _DashState {
       final body = res['response']?.toString() ?? '';
       final names = <String>[];
       for (final rawLine in body.split('\n')) {
-        final line = rawLine.trim();
+        var line = rawLine.trim();
         if (line.isEmpty) continue;
         if (line.toLowerCase().contains('player') ||
             line.startsWith('---') ||
@@ -110,6 +110,8 @@ extension DashGodActionsMixin on _DashState {
             line.contains('Total')) {
           continue;
         }
+        // The B42 RCON `players` response prefixes names with a dash.
+        line = line.replaceFirst(RegExp(r'^[-*]\s*'), '');
         if (RegExp(r'^[A-Za-z0-9_\-\.]{2,32}$').hasMatch(line)) {
           names.add(line);
         }
@@ -135,7 +137,10 @@ extension DashGodActionsMixin on _DashState {
       if (_godOnlinePlayers.isEmpty) return null;
       return _godOnlinePlayers[r.nextInt(_godOnlinePlayers.length)];
     }
-    return _godSelectedTarget;
+    final target = _godSelectedTarget
+        .trim()
+        .replaceFirst(RegExp(r'^[-*]\s*'), '');
+    return target.isEmpty ? null : target;
   }
 
   /// Real seconds for a preset based on the user-set in-game duration.
@@ -1122,7 +1127,7 @@ extension DashGodActionsMixin on _DashState {
                     return;
                   }
                   _quickSendRcon(
-                    'thunder "$target"',
+                    'thunder $target',
                     'Lightning struck: $target',
                   );
                 },
@@ -1149,7 +1154,7 @@ extension DashGodActionsMixin on _DashState {
                     return;
                   }
                   _quickSendRcon(
-                    'lightning "$target"',
+                    'lightning $target',
                     'Lightning struck: $target',
                   );
                 },
@@ -1299,7 +1304,7 @@ extension DashGodActionsMixin on _DashState {
                     return;
                   }
                   _quickSendRcon(
-                    'createhorde $count "$target"',
+                    'createhorde $count $target',
                     '$count zombie horde spawned: $target',
                   );
                 },
